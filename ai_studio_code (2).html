@@ -1,0 +1,1142 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Библиотека Всего</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style id="themeStyles">
+    :root {
+      --grad: linear-gradient(135deg, #af52de, #5856d6);
+      --accent: #af52de;
+      --bg-main: #000000;
+      --bg-card: rgba(24, 24, 27, 0.75);
+      --border: rgba(255, 255, 255, 0.08);
+    }
+    body {
+      background-color: var(--bg-main) !important;
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "Segoe UI", Roboto, sans-serif;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .ios-glass {
+      background: var(--bg-card);
+      backdrop-filter: blur(25px);
+      -webkit-backdrop-filter: blur(25px);
+      border-color: var(--border);
+    }
+    .theme-accent-bg { background: var(--grad) !important; }
+    .theme-accent-text { color: var(--accent) !important; }
+    .theme-accent-border { border-color: var(--accent) !important; }
+    .no-scrollbar::-webkit-scrollbar { display: none; }
+    .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+    .line-clamp-2 { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+  </style>
+</head>
+<body class="text-slate-100 min-h-screen selection:bg-purple-500 selection:text-white pb-14">
+
+  <script>
+    const SB_URL = 'https://zwlvkxieirgizyyzpyxd.supabase.co';
+    const SB_KEY = 'sb_publishable_s4c5cypmhF6GXCoWeP3SQA_KnnnZCeC';
+    let supabaseClient = null;
+    try { if (window.supabase) supabaseClient = window.supabase.createClient(SB_URL, SB_KEY); } catch(e){}
+
+    const CREATOR_LABELS = {
+      movie: { label: 'Режиссёр', ph: 'Кристофер Нолан...' },
+      series: { label: 'Создатели / Студия', ph: 'Винс Гиллиган, HBO...' },
+      anime: { label: 'Студия / Автор', ph: 'Sunrise, MAPPA...' },
+      music: { label: 'Исполнитель', ph: 'Radiohead...' },
+      game: { label: 'Разработчик', ph: 'CD Projekt RED...' }
+    };
+
+    // Запрещённые мусорные жанры
+    const BANNED_GENRES = new Set([
+      'видеоигра', 'видеоигры', 'игра', 'игры', 'game', 'games', 'video game',
+      'музыка', 'песня', 'трек', 'music', 'song', 'альбом',
+      'фильм', 'фильмы', 'кино', 'кинофильм', 'movie', 'film',
+      'сериал', 'сериалы', 'телесериал', 'tv show', 'series',
+      'аниме', 'манга', 'anime', 'manga', 'разное', 'произведение', 'undefined', 'null'
+    ]);
+
+    const DISCOVERY_POOL = [
+      { title: 'Ковбой Бибоп', origTitle: 'Cowboy Bebop', cat: 'anime', creator: 'Студия Sunrise, режиссёр Синъитиро Ватанабэ', meta: 'Япония • 26 эп. по ~24 мин.', genre: 'Фантастика', year: '1998', cover: 'https://images.unsplash.com/photo-1578632767115-351597cf2477?w=500' },
+      { title: 'Подозрительные лица', origTitle: 'The Usual Suspects', cat: 'movie', creator: 'Брайан Сингер', meta: '1 ч. 46 мин.', genre: 'Триллер', year: '1995', cover: 'https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?w=500' },
+      { title: 'Во все тяжкие', origTitle: 'Breaking Bad', cat: 'series', creator: 'Винс Гиллиган (AMC)', meta: '5 сезонов • 62 эп.', genre: 'Криминал', year: '2008', cover: 'https://images.unsplash.com/photo-1522869635100-9f4c5e86aa37?w=500' },
+      { title: 'Атака титанов', origTitle: 'Shingeki no Kyojin', cat: 'anime', creator: 'Студия MAPPA / Wit', meta: 'Япония • 4 сезона • 89 эп.', genre: 'Сёнэн', year: '2013', cover: 'https://images.unsplash.com/photo-1607604276583-eef5d076aa5f?w=500' },
+      { title: 'Интерстеллар', origTitle: 'Interstellar', cat: 'movie', creator: 'Кристофер Нолан', meta: '2 ч. 49 мин.', genre: 'Фантастика', year: '2014', cover: 'https://images.unsplash.com/photo-1451187580459-43490279c0fa?w=500' },
+      { title: 'Ведьмак 3: Дикая Охота', origTitle: 'The Witcher 3: Wild Hunt', cat: 'game', creator: 'CD Projekt RED', meta: 'ПК, Консоли', genre: 'RPG', year: '2015', cover: 'https://images.unsplash.com/photo-1511512578047-dfb367046420?w=500' },
+      { title: 'Radiohead — OK Computer', origTitle: 'OK Computer', cat: 'music', creator: 'Radiohead', meta: '12 треков', genre: 'Рок', year: '1997', cover: 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=500' }
+    ];
+  </script>
+
+  <!-- iOS Навигационная панель -->
+  <header class="sticky top-0 z-40 bg-black/80 backdrop-blur-2xl border-b border-white/[0.08] px-4 py-2.5">
+    <div class="max-w-6xl mx-auto space-y-2">
+      <div class="flex items-center justify-between">
+        <div class="flex items-center gap-2">
+          <div class="w-7 h-7 rounded-lg theme-accent-bg flex items-center justify-center font-bold text-white text-xs shadow-md">✨</div>
+          <div>
+            <h1 class="text-sm font-semibold tracking-tight text-white leading-none">Библиотека Всего</h1>
+            <p class="text-[9px] text-emerald-400 font-medium tracking-wide mt-0.5">● Облако активно</p>
+          </div>
+        </div>
+        <div class="flex items-center gap-1.5">
+          <button onclick="openThemeModal()" class="px-2.5 py-1 bg-white/10 hover:bg-white/15 border border-white/10 rounded-full text-[11px] font-medium transition flex items-center gap-1">
+            <span>🎨</span><span class="hidden sm:inline">Градиент</span>
+          </button>
+          <button onclick="exportBackup()" class="p-1 px-2 bg-white/10 hover:bg-white/15 border border-white/10 rounded-full text-[11px]">💾</button>
+          <button onclick="openAddModal()" class="theme-accent-bg hover:opacity-90 text-white font-semibold px-3 py-1 rounded-full text-xs transition shadow flex items-center gap-1">
+            <span>+</span><span>Добавить</span>
+          </button>
+        </div>
+      </div>
+      <div class="relative w-full">
+        <span class="absolute left-3 top-2 text-xs text-white/40">🔍</span>
+        <input id="searchInput" type="text" placeholder="Поиск по названию, автору, жанру..." class="w-full bg-[#1c1c1e] border border-white/5 rounded-xl pl-8 pr-3 py-1.5 text-xs text-white placeholder-white/40 focus:outline-none focus:ring-1 focus:ring-purple-400">
+      </div>
+    </div>
+  </header>
+
+  <!-- Контент -->
+  <main class="max-w-6xl mx-auto px-4 pt-3.5">
+    <div class="flex items-center gap-1.5 overflow-x-auto no-scrollbar pb-1">
+      <button onclick="setFilter('all')" class="cat-btn shrink-0 px-3.5 py-1.5 rounded-full text-xs font-semibold theme-accent-bg text-white shadow-sm" data-cat="all">Все</button>
+      <button onclick="setFilter('anime')" class="cat-btn shrink-0 px-3.5 py-1.5 rounded-full text-xs font-semibold bg-[#1c1c1e] text-slate-300 border border-white/5" data-cat="anime">🌸 Аниме</button>
+      <button onclick="setFilter('movie')" class="cat-btn shrink-0 px-3.5 py-1.5 rounded-full text-xs font-semibold bg-[#1c1c1e] text-slate-300 border border-white/5" data-cat="movie">🎬 Фильмы</button>
+      <button onclick="setFilter('series')" class="cat-btn shrink-0 px-3.5 py-1.5 rounded-full text-xs font-semibold bg-[#1c1c1e] text-slate-300 border border-white/5" data-cat="series">📺 Сериалы</button>
+      <button onclick="setFilter('music')" class="cat-btn shrink-0 px-3.5 py-1.5 rounded-full text-xs font-semibold bg-[#1c1c1e] text-slate-300 border border-white/5" data-cat="music">🎵 Музыка</button>
+      <button onclick="setFilter('game')" class="cat-btn shrink-0 px-3.5 py-1.5 rounded-full text-xs font-semibold bg-[#1c1c1e] text-slate-300 border border-white/5" data-cat="game">🎮 Игры</button>
+    </div>
+
+    <!-- Живые чистые хэштеги (без #видеоигра и #музыка) -->
+    <div id="genresBar" class="flex flex-wrap gap-1.5 my-2.5 min-h-[22px]"></div>
+
+    <!-- Сетка карточек -->
+    <div id="cardsGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 mt-2"></div>
+    <div id="emptyState" class="hidden text-center py-24 text-white/40 text-xs">📦 В этой категории пока нет записей. Добавьте первую!</div>
+  </main>
+
+  <!-- КАРТОЧКА В СТИЛЕ КИНОПОИСК / SHIKIMORI / ZONA (ПОЛНЫЙ ПРОСМОТР) -->
+  <div id="cardDetailModal" class="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/85 backdrop-blur-md hidden p-0 sm:p-4 overflow-y-auto">
+    <div class="ios-glass border w-full max-w-lg rounded-t-3xl sm:rounded-3xl p-5 shadow-2xl relative max-h-[94vh] overflow-y-auto no-scrollbar space-y-4">
+      <button type="button" onclick="closeDetailModal()" class="absolute top-4 right-4 w-7 h-7 rounded-full bg-black/60 border border-white/10 text-white flex items-center justify-center text-xs font-bold z-20 hover:bg-white/20">✕</button>
+
+      <!-- Высокий арт-постер -->
+      <div class="relative w-full h-80 rounded-2xl overflow-hidden bg-black/60 shadow-xl border border-white/5">
+        <img id="dCover" src="" referrerpolicy="no-referrer" class="w-full h-full object-cover">
+        <div class="absolute inset-0 bg-gradient-to-t from-[#141417] via-transparent to-transparent"></div>
+        <div class="absolute bottom-3 left-3 flex items-center gap-2">
+          <span id="dBadge" class="px-2.5 py-0.5 rounded-full text-[11px] font-semibold backdrop-blur-md bg-black/60 border border-white/10"></span>
+          <span id="dYear" class="px-2 py-0.5 rounded-full text-[11px] font-medium bg-black/60 border border-white/10 text-white/80"></span>
+        </div>
+        <div class="absolute bottom-3 right-3 px-3 py-1 rounded-full text-xs font-bold bg-black/75 backdrop-blur-md text-amber-300 border border-white/10 flex items-center gap-1 shadow">
+          ★ <span id="dRating"></span>/10
+        </div>
+      </div>
+
+      <!-- Заголовки (Русское + Оригинальное название) -->
+      <div class="space-y-1">
+        <h2 id="dTitle" class="text-xl font-bold text-white tracking-tight leading-snug"></h2>
+        <div id="dOrigSubtitle" class="text-xs text-white/60 font-medium"></div>
+      </div>
+
+      <!-- Главная кнопка действия -->
+      <div id="dSourceBox"></div>
+
+      <!-- Таблица характеристик с иконками -->
+      <div class="bg-white/[0.04] p-3.5 rounded-2xl border border-white/[0.07] space-y-2.5 text-xs">
+        <div id="rowMeta" class="flex items-start gap-2.5">
+          <span class="text-white/40 shrink-0 mt-0.5" id="dMetaIcon">⏱</span>
+          <div class="flex-1 text-white/90">
+            <span class="text-white/50 text-[11px]" id="dMetaLabel">Хронометраж: </span>
+            <span id="dMeta" class="font-semibold text-white"></span>
+          </div>
+        </div>
+        <div id="rowCreator" class="flex items-start gap-2.5">
+          <span class="text-white/40 shrink-0 mt-0.5" id="dCreatorIcon">👥</span>
+          <div class="flex-1 text-white/90">
+            <span class="text-white/50 text-[11px]" id="dCreatorLabel">Создатель: </span>
+            <span id="dCreatorText" class="font-semibold text-white"></span>
+          </div>
+        </div>
+        <div class="flex items-start gap-2.5">
+          <span class="text-white/40 shrink-0 mt-0.5">🏷</span>
+          <div class="flex-1">
+            <span class="text-white/50 text-[11px]">Жанры: </span>
+            <span id="dGenre" class="theme-accent-text font-semibold"></span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Личная рецензия -->
+      <div class="bg-white/[0.03] p-3.5 rounded-2xl border border-white/[0.06] space-y-1">
+        <div class="text-[10px] font-semibold text-white/40 uppercase tracking-wider">Моя рецензия и воспоминания</div>
+        <p id="dMemory" class="text-xs text-slate-200 leading-relaxed italic whitespace-pre-wrap font-normal"></p>
+      </div>
+
+      <!-- Кнопки управления -->
+      <div class="flex items-center gap-2 pt-1">
+        <button id="dEditBtn" class="flex-1 py-2.5 bg-white/10 hover:bg-white/15 rounded-xl text-xs font-semibold text-white transition text-center">Редактировать</button>
+        <button id="dDelBtn" class="py-2.5 px-4 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 rounded-xl text-xs font-semibold transition">Удалить</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Модальное окно (Добавление / Редактирование) -->
+  <div id="itemModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/85 backdrop-blur-md hidden p-3 overflow-y-auto">
+    <div class="ios-glass border w-full max-w-md rounded-3xl p-4 shadow-2xl relative my-auto">
+      <button type="button" onclick="closeModal()" class="absolute top-3.5 right-3.5 text-slate-400 hover:text-white">✕</button>
+      <h2 id="modalTitle" class="text-sm font-bold mb-3 text-white">✨ Добавить в память</h2>
+
+      <form id="itemForm" onsubmit="saveItem(event)" class="space-y-2.5">
+        <div class="relative">
+          <label class="block text-[10px] text-white/50 mb-1">Название произведения *</label>
+          <div class="relative">
+            <input id="fTitle" type="text" autocomplete="off" required placeholder="Например: Подозрительные лица, Ковбой Бибоп, The Hunt..." class="w-full bg-[#1c1c1e] border border-white/10 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:ring-1 focus:ring-purple-400" onfocus="handleTitleFocus()" oninput="handleTitleInput(this.value)">
+            <span id="spinner" class="absolute right-3 top-2 text-xs hidden animate-spin">⏳</span>
+          </div>
+
+          <div id="sugBox" class="absolute left-0 right-0 top-full mt-1 bg-[#1c1c1e] border border-white/15 rounded-2xl shadow-2xl z-50 hidden flex flex-col overflow-hidden">
+            <div id="sugHeader" class="flex gap-1 p-1.5 bg-black/60 border-b border-white/10 text-[10px] overflow-x-auto no-scrollbar">
+              <button type="button" onclick="setSugTab('all')" class="s-tab px-2 py-0.5 rounded-lg theme-accent-bg text-white font-medium" data-tab="all">Все <span id="c-all"></span></button>
+              <button type="button" onclick="setSugTab('anime')" class="s-tab px-2 py-0.5 rounded-lg bg-white/10 text-pink-300" data-tab="anime">🌸 Аниме <span id="c-anime"></span></button>
+              <button type="button" onclick="setSugTab('movie')" class="s-tab px-2 py-0.5 rounded-lg bg-white/10 text-rose-300" data-tab="movie">🎬 Кино <span id="c-movie"></span></button>
+              <button type="button" onclick="setSugTab('series')" class="s-tab px-2 py-0.5 rounded-lg bg-white/10 text-sky-300" data-tab="series">📺 Сериалы <span id="c-series"></span></button>
+              <button type="button" onclick="setSugTab('music')" class="s-tab px-2 py-0.5 rounded-lg bg-white/10 text-emerald-300" data-tab="music">🎵 Музыка <span id="c-music"></span></button>
+              <button type="button" onclick="setSugTab('game')" class="s-tab px-2 py-0.5 rounded-lg bg-white/10 text-amber-300" data-tab="game">🎮 Игры <span id="c-game"></span></button>
+            </div>
+            <div id="sugList" class="overflow-y-auto max-h-60 divide-y divide-white/5 text-xs"></div>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-2">
+          <div>
+            <label class="block text-[10px] text-white/50 mb-1">Категория</label>
+            <select id="fCategory" class="w-full bg-[#1c1c1e] border border-white/10 rounded-xl px-2.5 py-1.5 text-xs text-white" onchange="updateCategoryLabels()">
+              <option value="anime">Аниме</option>
+              <option value="movie">Фильм</option>
+              <option value="series">Сериал</option>
+              <option value="music">Музыка</option>
+              <option value="game">Игра</option>
+            </select>
+          </div>
+          <div>
+            <label id="lblCreator" class="block text-[10px] text-white/50 mb-1">Студия / Автор</label>
+            <input id="fCreator" type="text" placeholder="Определится автоматически..." class="w-full bg-[#1c1c1e] border border-white/10 rounded-xl px-2.5 py-1.5 text-xs text-white">
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-2">
+          <div>
+            <label class="block text-[10px] text-white/50 mb-1">Оригинальное название</label>
+            <input id="fOrigTitle" type="text" placeholder="Например: The Usual Suspects" class="w-full bg-[#1c1c1e] border border-white/10 rounded-xl px-2.5 py-1.5 text-xs text-white">
+          </div>
+          <div>
+            <label id="lblMeta" class="block text-[10px] text-white/50 mb-1">Длительность / Сезоны</label>
+            <input id="fMeta" type="text" placeholder="1 ч. 46 мин. / 5 сезонов..." class="w-full bg-[#1c1c1e] border border-white/10 rounded-xl px-2.5 py-1.5 text-xs text-white">
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-2">
+          <div>
+            <label class="block text-[10px] text-white/50 mb-1">Жанр (хэштег)</label>
+            <input id="fGenre" type="text" placeholder="Триллер, Сёнэн, RPG..." class="w-full bg-[#1c1c1e] border border-white/10 rounded-xl px-2.5 py-1.5 text-xs text-white">
+          </div>
+          <div>
+            <label class="block text-[10px] text-white/50 mb-1">Оценка (1-10)</label>
+            <input id="fRating" type="number" min="1" max="10" value="10" class="w-full bg-[#1c1c1e] border border-white/10 rounded-xl px-2.5 py-1.5 text-xs text-white">
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-[10px] text-white/50 mb-1">Постер (URL)</label>
+          <div class="flex gap-1.5">
+            <input id="fCover" type="text" placeholder="https://..." class="w-full bg-[#1c1c1e] border border-white/10 rounded-xl px-2.5 py-1.5 text-xs text-white">
+            <div id="cPrev" class="w-7 h-7 bg-[#1c1c1e] rounded-lg shrink-0 flex items-center justify-center text-[10px] border border-white/10 overflow-hidden">🖼️</div>
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-[10px] theme-accent-text mb-1">💭 Воспоминания и личная рецензия</label>
+          <textarea id="fMemory" rows="2" placeholder="С кем смотрели, что чувствовали, любимый персонаж или момент..." class="w-full bg-[#1c1c1e] border border-white/10 rounded-xl p-2 text-xs text-white"></textarea>
+        </div>
+
+        <div>
+          <label class="block text-[10px] text-white/50 mb-1">Ссылка на просмотр / трекер</label>
+          <input id="fSource" type="text" placeholder="https://..." class="w-full bg-[#1c1c1e] border border-white/10 rounded-xl px-2.5 py-1.5 text-xs text-white">
+        </div>
+
+        <div class="flex justify-end gap-2 pt-1.5">
+          <button type="button" onclick="closeModal()" class="px-3 py-1.5 text-xs text-white/50">Отмена</button>
+          <button type="submit" class="px-4 py-1.5 theme-accent-bg hover:opacity-90 text-white rounded-xl text-xs font-semibold shadow">Сохранить</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ДИЗАЙНЕРСКИЙ РЕДАКТОР ГРАДИЕНТОВ -->
+  <div id="themeModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/85 backdrop-blur-md hidden p-4">
+    <div class="ios-glass border w-full max-w-sm rounded-3xl p-5 shadow-2xl relative space-y-4">
+      <button type="button" onclick="closeThemeModal()" class="absolute top-4 right-4 text-white/50 hover:text-white">✕</button>
+      <h3 class="text-sm font-bold text-white flex items-center gap-1.5">🎨 Дизайнерские градиенты</h3>
+
+      <div>
+        <label class="block text-[11px] font-semibold text-white/70 mb-2">Коллекция градиентов:</label>
+        <div class="grid grid-cols-2 gap-2">
+          <button onclick="applyGradientStyle('#af52de', '#5856d6', 135)" class="h-9 rounded-2xl bg-gradient-to-r from-purple-500 to-indigo-600 text-xs font-bold text-white shadow flex items-center justify-center border border-white/10">Cosmic Velvet</button>
+          <button onclick="applyGradientStyle('#ff2d55', '#af52de', 135)" class="h-9 rounded-2xl bg-gradient-to-r from-pink-500 to-purple-600 text-xs font-bold text-white shadow flex items-center justify-center border border-white/10">Sakura Neon</button>
+          <button onclick="applyGradientStyle('#00f2fe', '#4facfe', 135)" class="h-9 rounded-2xl bg-gradient-to-r from-cyan-400 to-blue-500 text-xs font-bold text-white shadow flex items-center justify-center border border-white/10">Cyber Blue</button>
+          <button onclick="applyGradientStyle('#10b981', '#059669', 135)" class="h-9 rounded-2xl bg-gradient-to-r from-emerald-400 to-teal-600 text-xs font-bold text-white shadow flex items-center justify-center border border-white/10">Emerald Matrix</button>
+          <button onclick="applyGradientStyle('#f59e0b', '#d97706', 135)" class="h-9 rounded-2xl bg-gradient-to-r from-amber-400 to-orange-600 text-xs font-bold text-white shadow flex items-center justify-center border border-white/10">Sunset Gold</button>
+          <button onclick="applyGradientStyle('#ef4444', '#b91c1c', 135)" class="h-9 rounded-2xl bg-gradient-to-r from-rose-500 to-red-700 text-xs font-bold text-white shadow flex items-center justify-center border border-white/10">Ruby Flame</button>
+        </div>
+      </div>
+
+      <div class="border-t border-white/10 pt-3 space-y-2.5">
+        <div class="flex items-center justify-between">
+          <label class="text-[11px] font-semibold text-white/70">Создать свой градиент:</label>
+          <div class="flex items-center gap-1 text-[10px]">
+            <button onclick="setGradAngle(90)" class="px-1.5 py-0.5 rounded bg-white/10 hover:bg-white/20">90°</button>
+            <button onclick="setGradAngle(135)" class="px-1.5 py-0.5 rounded bg-white/20 font-bold">135°</button>
+            <button onclick="setGradAngle(180)" class="px-1.5 py-0.5 rounded bg-white/10 hover:bg-white/20">180°</button>
+          </div>
+        </div>
+
+        <div class="space-y-1.5">
+          <div class="text-[10px] text-white/40">Цвет начала:</div>
+          <div class="flex flex-wrap gap-1.5" id="swatchesC1"></div>
+          <div class="text-[10px] text-white/40 pt-1">Цвет конца:</div>
+          <div class="flex flex-wrap gap-1.5" id="swatchesC2"></div>
+        </div>
+
+        <div id="gradLivePreview" class="h-10 rounded-2xl flex items-center justify-center text-xs font-bold text-white shadow-lg border border-white/20 cursor-pointer transition" onclick="saveCustomGrad()">
+          ✓ Применить созданный градиент
+        </div>
+      </div>
+
+      <div class="border-t border-white/10 pt-3">
+        <label class="block text-[11px] font-semibold text-white/70 mb-1.5">Оттенок фона:</label>
+        <div class="grid grid-cols-3 gap-1.5 text-[11px]">
+          <button onclick="applyBg('#000000', 'rgba(28, 28, 30, 0.8)', 'rgba(255, 255, 255, 0.1)')" class="p-1.5 bg-black border border-white/20 rounded-xl text-white font-semibold">OLED</button>
+          <button onclick="applyBg('#0b0b0e', 'rgba(24, 24, 28, 0.8)', 'rgba(255, 255, 255, 0.08)')" class="p-1.5 bg-[#0b0b0e] border border-white/10 rounded-xl text-slate-300">Сланец</button>
+          <button onclick="applyBg('#050814', 'rgba(11, 17, 44, 0.8)', 'rgba(255, 255, 255, 0.08)')" class="p-1.5 bg-[#050814] border border-blue-900/40 rounded-xl text-blue-200">Космос</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const MASTER_DB = 'LibraryOfMemories_Main';
+    let db = null, allItems = [], curFilter = 'all', curGenre = 'all', editId = null, sTimer = null, sugs = [], curSugTab = 'all';
+
+    const NEON_PALETTE = ['#af52de', '#ff2d55', '#ff375f', '#ff9500', '#ffcc00', '#34c759', '#30d158', '#00f2fe', '#0a84ff', '#5856d6', '#ec4899', '#f43f5e', '#10b981', '#06b6d4', '#f59e0b', '#ef4444'];
+    let customC1 = '#af52de', customC2 = '#5856d6', customAngle = 135;
+
+    function renderSwatches() {
+      const b1 = document.getElementById('swatchesC1'), b2 = document.getElementById('swatchesC2');
+      if (!b1 || !b2) return;
+      b1.innerHTML = ''; b2.innerHTML = '';
+      NEON_PALETTE.forEach(c => {
+        const s1 = document.createElement('button');
+        s1.className = `w-5 h-5 rounded-full border ${customC1===c?'border-white scale-110':'border-transparent'} transition`;
+        s1.style.backgroundColor = c;
+        s1.onclick = () => { customC1 = c; updateGradPreview(); };
+        b1.appendChild(s1);
+
+        const s2 = document.createElement('button');
+        s2.className = `w-5 h-5 rounded-full border ${customC2===c?'border-white scale-110':'border-transparent'} transition`;
+        s2.style.backgroundColor = c;
+        s2.onclick = () => { customC2 = c; updateGradPreview(); };
+        b2.appendChild(s2);
+      });
+      updateGradPreview();
+    }
+
+    function setGradAngle(a) { customAngle = a; updateGradPreview(); }
+    function updateGradPreview() {
+      const g = `linear-gradient(${customAngle}deg, ${customC1}, ${customC2})`;
+      const el = document.getElementById('gradLivePreview');
+      if (el) el.style.background = g;
+    }
+    function saveCustomGrad() { applyGradientStyle(customC1, customC2, customAngle); closeThemeModal(); }
+    function applyGradientStyle(c1, c2, angle = 135) {
+      const grad = `linear-gradient(${angle}deg, ${c1}, ${c2})`;
+      document.documentElement.style.setProperty('--grad', grad);
+      document.documentElement.style.setProperty('--accent', c1);
+      saveTheme({ grad, accent: c1, c1, c2, angle });
+    }
+
+    function loadSavedTheme() {
+      try {
+        const s = JSON.parse(localStorage.getItem('lib_theme_prefs'));
+        if (s?.grad) {
+          document.documentElement.style.setProperty('--grad', s.grad);
+          document.documentElement.style.setProperty('--accent', s.accent || '#af52de');
+          if (s.c1) customC1 = s.c1;
+          if (s.c2) customC2 = s.c2;
+          if (s.angle) customAngle = s.angle;
+        }
+        if (s?.bgMain) {
+          document.documentElement.style.setProperty('--bg-main', s.bgMain);
+          document.documentElement.style.setProperty('--bg-card', s.bgCard);
+          document.documentElement.style.setProperty('--border', s.border);
+        }
+      } catch(e){}
+    }
+    loadSavedTheme();
+
+    function openThemeModal() { renderSwatches(); document.getElementById('themeModal').classList.remove('hidden'); }
+    function closeThemeModal() { document.getElementById('themeModal').classList.add('hidden'); }
+    function applyBg(m, c, b) {
+      document.documentElement.style.setProperty('--bg-main', m);
+      document.documentElement.style.setProperty('--bg-card', c);
+      document.documentElement.style.setProperty('--border', b);
+      saveTheme({ bgMain: m, bgCard: c, border: b });
+    }
+    function saveTheme(u) { try { const cur = JSON.parse(localStorage.getItem('lib_theme_prefs')) || {}; localStorage.setItem('lib_theme_prefs', JSON.stringify({ ...cur, ...u })); } catch(e){} }
+
+    function updateCategoryLabels() {
+      const cat = document.getElementById('fCategory').value;
+      const info = CREATOR_LABELS[cat] || CREATOR_LABELS.movie;
+      document.getElementById('lblCreator').textContent = info.label;
+      document.getElementById('fCreator').placeholder = info.ph;
+      const metaLbl = document.getElementById('lblMeta');
+      if (cat === 'movie') metaLbl.textContent = 'Хронометраж';
+      else if (cat === 'series') metaLbl.textContent = 'Сезоны и серии';
+      else if (cat === 'anime') metaLbl.textContent = 'Эпизоды и формат';
+      else metaLbl.textContent = 'Доп. сведения';
+    }
+
+    function jsonp(url) {
+      return new Promise(res => {
+        const cb = 'cb_' + Math.random().toString(36).slice(2) + '_' + Date.now();
+        const s = document.createElement('script');
+        window[cb] = d => { clean(); res(d); };
+        const clean = () => { delete window[cb]; s.remove(); };
+        s.onerror = () => { clean(); res(null); };
+        s.src = url + (url.includes('?') ? '&' : '?') + 'callback=' + cb;
+        document.body.appendChild(s);
+        setTimeout(() => { clean(); res(null); }, 4000);
+      });
+    }
+
+    function initDB() {
+      return new Promise(res => {
+        if (db) return res(db);
+        const req = indexedDB.open(MASTER_DB, 1);
+        req.onupgradeneeded = e => e.target.result.createObjectStore('items', { keyPath: 'id' });
+        req.onsuccess = e => { db = e.target.result; res(db); };
+      });
+    }
+
+    async function recoverOld(target) {
+      const oldNames = ['LibraryOfEverythingDB','LibraryOfEverything_V3','LibraryOfEverything_V5','LibraryOfEverything_V7','LibraryOfEverything_V9','LibraryOfEverything_V10','LibraryOfEverything_V11'];
+      for (const n of oldNames) {
+        await new Promise(r => {
+          const rq = indexedDB.open(n);
+          rq.onsuccess = e => {
+            const o = e.target.result;
+            if (o.objectStoreNames.contains('items')) {
+              o.transaction('items','readonly').objectStore('items').getAll().onsuccess = ev => {
+                for (const it of (ev.target.result || [])) target.transaction('items', 'readwrite').objectStore('items').put(it);
+                o.close(); r();
+              };
+            } else { o.close(); r(); }
+          };
+          rq.onerror = () => r();
+        });
+      }
+    }
+
+    // Упаковка/распаковка расширенных данных в память (совместимо с Supabase)
+    function packMemory(creator, origTitle, meta, note) {
+      return JSON.stringify({ c: creator || '', o: origTitle || '', m: meta || '', n: note || '' });
+    }
+
+    function parseItemData(raw) {
+      const str = raw.memory || '';
+      let creator = '', origTitle = '', meta = '', note = str;
+      if (str.startsWith('{') && str.endsWith('}')) {
+        try {
+          const p = JSON.parse(str);
+          creator = p.c || ''; origTitle = p.o || ''; meta = p.m || ''; note = p.n || '';
+        } catch(e){}
+      } else if (str.startsWith('[') && str.includes(']')) {
+        const end = str.indexOf(']');
+        creator = str.slice(1, end).trim();
+        note = str.slice(end + 1).trim();
+      }
+      // Очищаем жанр от мусора #видеоигра / #музыка
+      const cleanG = normalizeGenre(raw.genre, raw.category, raw.title, '');
+      return { ...raw, creator, origTitle, meta, memory: note, genre: cleanG };
+    }
+
+    // Умный нормализатор жанров (БЛОКИРУЕТ #видеоигра, #музыка, #фильм)
+    function normalizeGenre(rawGenre, cat, title = '', desc = '') {
+      let g = (rawGenre || '').replace(/[#]/g, '').trim();
+      const low = g.toLowerCase();
+
+      if (!g || BANNED_GENRES.has(low)) {
+        const text = (title + ' ' + desc).toLowerCase();
+        if (cat === 'game') {
+          if (text.includes('rpg') || text.includes('ролев') || text.includes('souls')) return 'RPG';
+          if (text.includes('shooter') || text.includes('шутер') || text.includes('fps')) return 'Шутер';
+          if (text.includes('horror') || text.includes('хоррор') || text.includes('survival') || text.includes('выживан')) return 'Хоррор';
+          if (text.includes('strategy') || text.includes('стратег') || text.includes('rts')) return 'Стратегия';
+          if (text.includes('stealth') || text.includes('стелс')) return 'Стелс-экшен';
+          if (text.includes('racing') || text.includes('гонк')) return 'Гонки';
+          if (text.includes('platformer') || text.includes('платформер')) return 'Платформер';
+          if (text.includes('fighting') || text.includes('файтинг')) return 'Файтинг';
+          if (text.includes('action') || text.includes('экшен') || text.includes('слэшер')) return 'Экшен';
+          return 'Приключения';
+        } else if (cat === 'music') {
+          if (text.includes('metal') || text.includes('метал')) return 'Метал';
+          if (text.includes('rap') || text.includes('рэп') || text.includes('hip-hop') || text.includes('хип-хоп')) return 'Рэп / Хип-хоп';
+          if (text.includes('electronic') || text.includes('электроник') || text.includes('dance') || text.includes('house') || text.includes('techno')) return 'Электроника';
+          if (text.includes('punk') || text.includes('панк')) return 'Панк-рок';
+          if (text.includes('indie') || text.includes('инди')) return 'Инди';
+          if (text.includes('soundtrack') || text.includes('саундтрек') || text.includes('ost')) return 'Саундтрек';
+          if (text.includes('pop') || text.includes('поп')) return 'Поп';
+          return 'Рок';
+        } else if (cat === 'movie') {
+          if (text.includes('sci-fi') || text.includes('фантастик')) return 'Фантастика';
+          if (text.includes('comedy') || text.includes('комед')) return 'Комедия';
+          if (text.includes('action') || text.includes('боевик')) return 'Боевик';
+          if (text.includes('thriller') || text.includes('триллер')) return 'Триллер';
+          if (text.includes('horror') || text.includes('ужас')) return 'Ужасы';
+          if (text.includes('crime') || text.includes('криминал') || text.includes('детектив')) return 'Криминал';
+          if (text.includes('adventure') || text.includes('приключен')) return 'Приключения';
+          return 'Драма';
+        } else if (cat === 'anime') {
+          if (text.includes('isekai') || text.includes('исекай')) return 'Исекай';
+          if (text.includes('mecha') || text.includes('меха')) return 'Меха';
+          if (text.includes('romance') || text.includes('романтик')) return 'Романтика';
+          if (text.includes('psychological') || text.includes('психолог')) return 'Психология';
+          if (text.includes('fantasy') || text.includes('фэнтези')) return 'Фэнтези';
+          return 'Сёнэн';
+        } else if (cat === 'series') {
+          if (text.includes('comedy') || text.includes('комед') || text.includes('ситком')) return 'Комедия';
+          if (text.includes('sci-fi') || text.includes('фантастик')) return 'Фантастика';
+          if (text.includes('crime') || text.includes('криминал') || text.includes('детектив')) return 'Детектив';
+          if (text.includes('thriller') || text.includes('триллер')) return 'Триллер';
+          return 'Драма';
+        }
+      }
+      return g;
+    }
+
+    function formatDuration(ms) {
+      if (!ms) return '';
+      const totalMins = Math.round(ms / 60000);
+      const h = Math.floor(totalMins / 60);
+      const m = totalMins % 60;
+      return h > 0 ? `${h} ч. ${m} мин.` : `${m} мин.`;
+    }
+
+    function extractDurationFromText(text) {
+      if (!text) return '';
+      const m = text.match(/(?:длительность|продолжительность|хронометраж|running time|runtime)\D*?(\d{2,3})\s*(?:мин|min)/i) ||
+                text.match(/\b(\d{2,3})\s*(?:мин(?:ут[а-я]*)?|min(?:utes)?)\b/i);
+      if (m) {
+        const totalMins = parseInt(m[1]);
+        if (totalMins > 30 && totalMins < 360) {
+          const h = Math.floor(totalMins / 60);
+          const mins = totalMins % 60;
+          return h > 0 ? `${h} ч. ${mins} мин.` : `${mins} мин.`;
+        }
+      }
+      return '';
+    }
+
+    function getPluralSeasons(n) {
+      const mod10 = n % 10, mod100 = n % 100;
+      if (mod100 >= 11 && mod100 <= 19) return 'сезонов';
+      if (mod10 === 1) return 'сезон';
+      if (mod10 >= 2 && mod10 <= 4) return 'сезона';
+      return 'сезонов';
+    }
+
+    function extractCreatorFromText(cat, text, def = '') {
+      if (!text) return def;
+      const t = text.replace(/\[\d+\]/g, '');
+      if (cat === 'movie') {
+        const mRu = t.match(/(?:режисс[её]р[а-я]*|постановщик[а-я]*)\s+([А-ЯЁA-Z][а-яёa-z]+(?:\s+[А-ЯЁA-Z][а-яёa-z]+)+)/i);
+        if (mRu) return mRu[1].trim();
+        const mEn = t.match(/(?:directed by|film by)\s+([A-Z][a-z]+(?:\s+[A-Z][a-z]+)+)/i);
+        if (mEn) return mEn[1].trim();
+      } else if (cat === 'game') {
+        const gRu = t.match(/(?:разработанная\s+(?:компанией|студией)?|разработчик[а-я]*[\s—:]+)([A-Za-zА-Яа-я0-9\s«»\-]+?)(?:,|\.|\sдля|\sи\sизданная)/i);
+        if (gRu) return gRu[1].replace(/[«»]/g, '').trim();
+        const gEn = t.match(/(?:developed by)\s+([A-Z0-9][a-zA-Z0-9\s\.\-]+?)(?:,|\.|\sand\spublished|\sfor\s)/i);
+        if (gEn) return gEn[1].trim();
+      } else if (cat === 'anime') {
+        const aRu = t.match(/(?:студии|студией|производства)\s+([A-Za-zА-Яа-я0-9\s«»\-]+?)(?:,|\.|\sрежиссёр)/i);
+        if (aRu) return aRu[1].replace(/[«»]/g, '').trim();
+      }
+      return def;
+    }
+
+    async function syncCloud() {
+      if (!supabaseClient) return;
+      try {
+        const { data } = await supabaseClient.from('items').select('*');
+        if (data && data.length) {
+          for (const it of data) {
+            db.transaction('items', 'readwrite').objectStore('items').put({
+              id: it.id, title: it.title, category: it.category, genre: it.genre, rating: it.rating,
+              memory: it.memory, sourceUrl: it.source_url, coverUrl: it.cover_url, dateAdded: it.date_added
+            });
+          }
+        }
+        db.transaction('items', 'readonly').objectStore('items').getAll().onsuccess = async e => {
+          for (const it of (e.target.result || [])) {
+            await supabaseClient.from('items').upsert({
+              id: it.id, title: it.title, category: it.category, genre: it.genre, rating: it.rating,
+              memory: it.memory, source_url: it.sourceUrl, cover_url: it.coverUrl, date_added: it.dateAdded
+            });
+          }
+        };
+      } catch(e){}
+    }
+
+    function handleTitleFocus() {
+      const v = document.getElementById('fTitle').value.trim();
+      if (v.length < 2) showRandomDiscovery();
+    }
+
+    function showRandomDiscovery() {
+      sugs = [...DISCOVERY_POOL].sort(() => 0.5 - Math.random()).slice(0, 6);
+      renderSugs(true);
+    }
+
+    function handleTitleInput(v) {
+      clearTimeout(sTimer);
+      const q = v.trim();
+      if (q.length < 2) { showRandomDiscovery(); return; }
+      document.getElementById('spinner').classList.remove('hidden');
+      sTimer = setTimeout(() => searchMedia(q), 250);
+    }
+
+    async function searchMedia(q) {
+      const cyr = /[\u0400-\u04FF]/.test(q);
+      const res = [];
+
+      // 1. Аниме (AniList GraphQL: Эпизоды, Длительность, Студия, Режиссер)
+      const pAnime = fetch('https://graphql.anilist.co', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+        body: JSON.stringify({
+          query: `query ($q: String) { Page(page: 1, perPage: 6) { media(search: $q, type: ANIME) { title { romaji english native } coverImage { extraLarge large } genres seasonYear episodes duration countryOfOrigin studios(isMain: true) { nodes { name } } } } }`,
+          variables: { q }
+        })
+      }).then(r => r.json()).then(d => {
+        d?.data?.Page?.media?.forEach(m => {
+          const t = m.title.english || m.title.romaji || m.title.native;
+          const orig = m.title.romaji || m.title.native || '';
+          const epText = m.episodes ? `${m.episodes} эп.` : 'Онгоинг';
+          const durText = m.duration ? `по ~${m.duration} мин.` : '';
+          const metaStr = `Япония • ${epText} ${durText}`.trim();
+
+          res.push({
+            title: t, origTitle: orig,
+            creator: m.studios?.nodes?.[0]?.name ? `Студия ${m.studios.nodes[0].name}` : 'Студия анимации',
+            meta: metaStr,
+            cat: 'anime',
+            genre: normalizeGenre(m.genres?.[0], 'anime', t, ''),
+            cover: m.coverImage?.extraLarge || m.coverImage?.large || '',
+            year: m.seasonYear || '', sub: '🌸 Аниме'
+          });
+        });
+      }).catch(()=>{});
+
+      const pAnimeRu = cyr ? fetch(`https://ru.wikipedia.org/w/api.php?action=query&generator=search&gsrsearch=${encodeURIComponent(q + ' (аниме OR манга)')}&gsrlimit=5&prop=pageimages|description|extracts&exintro=1&explaintext=1&exsentences=2&pithumbsize=600&pilicense=any&format=json&origin=*`).then(r => r.json()).then(ruW => {
+        if (ruW?.query?.pages) {
+          Object.values(ruW.query.pages).forEach(p => {
+            const d = (p.description || '').toLowerCase();
+            if (d.includes('аниме') || d.includes('манга') || p.title.toLowerCase().includes('аниме')) {
+              const cr = extractCreatorFromText('anime', (p.description || '') + ' ' + (p.extract || ''), 'Аниме-студия');
+              res.push({
+                title: p.title.replace(/\s*\(.*аниме.*?\)/i, '').replace(/\s*\(.*манга.*?\)/i, '').trim(),
+                origTitle: '', creator: cr, meta: 'Япония • Аниме', cat: 'anime',
+                genre: normalizeGenre('', 'anime', p.title, d),
+                cover: p.thumbnail?.source || '', year: d.match(/\b(19\d\d|20\d\d)\b/)?.[0] || '', sub: '🌸 Аниме'
+              });
+            }
+          });
+        }
+      }).catch(()=>{}) : Promise.resolve();
+
+      // 2. Фильмы (iTunes Movie с trackTimeMillis + Wiki EN/RU)
+      const pMovies = Promise.all([
+        jsonp(`https://itunes.apple.com/search?term=${encodeURIComponent(q)}&media=movie&entity=movie&limit=8`),
+        fetch(`https://en.wikipedia.org/w/api.php?action=query&generator=search&gsrsearch=${encodeURIComponent(q + ' film')}&gsrlimit=7&prop=pageimages|description|extracts&exintro=1&explaintext=1&exsentences=2&pithumbsize=600&pilicense=any&format=json&origin=*`).then(r=>r.json()).catch(()=>null),
+        fetch(`https://ru.wikipedia.org/w/api.php?action=query&generator=search&gsrsearch=${encodeURIComponent(q + ' (фильм OR кино)')}&gsrlimit=7&prop=pageimages|description|extracts&exintro=1&explaintext=1&exsentences=2&pithumbsize=600&pilicense=any&format=json&origin=*`).then(r=>r.json()).catch(()=>null)
+      ]).then(([it, enW, ruW]) => {
+        it?.results?.forEach(m => {
+          const dur = formatDuration(m.trackTimeMillis) || '1 ч. 50 мин.';
+          res.push({
+            title: m.trackName, origTitle: m.trackName,
+            creator: m.artistName || 'Кинорежиссёр',
+            meta: dur,
+            cat: 'movie',
+            genre: normalizeGenre(m.primaryGenreName, 'movie', m.trackName, ''),
+            cover: m.artworkUrl100?.replace('100x100bb','800x800bb'), year: m.releaseDate?.slice(0,4)
+          });
+        });
+        const parseW = (pages, isEn) => {
+          if (!pages) return;
+          Object.values(pages).forEach(p => {
+            const d = ((p.description || '') + ' ' + (p.extract || '')).toLowerCase();
+            if ((d.includes('film') || d.includes('фильм')) && !d.includes('футболист') && !d.includes('гонщик')) {
+              const cr = extractCreatorFromText('movie', (p.description || '') + ' ' + (p.extract || ''), 'Режиссёр');
+              const dur = extractDurationFromText(p.extract || p.description) || '1 ч. 45 мин.';
+              res.push({
+                title: p.title.replace(/\s*\(.*film.*?\)/i,'').replace(/\s*\(фильм.*?\)/i,'').trim(),
+                origTitle: isEn ? p.title : '', creator: cr, meta: dur,
+                cat: 'movie',
+                genre: normalizeGenre('', 'movie', p.title, d),
+                cover: p.thumbnail?.source || '', year: d.match(/\b(19\d\d|20\d\d)\b/)?.[0] || ''
+              });
+            }
+          });
+        };
+        parseW(enW?.query?.pages, true); parseW(ruW?.query?.pages, false);
+      });
+
+      // 3. Сериалы (TVMaze: Сезоны + Эпизоды)
+      const pSeries = fetch(`https://api.tvmaze.com/search/shows?q=${encodeURIComponent(q)}`)
+        .then(r => r.json())
+        .then(async data => {
+          if (!data || !Array.isArray(data)) return;
+          for (const item of data.slice(0, 5)) {
+            const s = item.show;
+            if (!s) continue;
+
+            // Запрашиваем сезоны
+            let seasonEpMeta = '';
+            try {
+              const seasonsData = await fetch(`https://api.tvmaze.com/shows/${s.id}/seasons`).then(r => r.json());
+              if (Array.isArray(seasonsData) && seasonsData.length > 0) {
+                const sCount = seasonsData.length;
+                const totalEp = seasonsData.reduce((acc, cur) => acc + (cur.episodeOrder || 0), 0);
+                const sText = getPluralSeasons(sCount);
+                seasonEpMeta = totalEp > 0 ? `${sCount} ${sText} • ${totalEp} эп.` : `${sCount} ${sText}`;
+              }
+            } catch(e){}
+
+            res.push({
+              title: s.name, origTitle: s.name,
+              creator: s.network?.name || s.webChannel?.name || 'Студия / Сеть',
+              meta: seasonEpMeta || 'Сериал',
+              cat: 'series',
+              genre: normalizeGenre(s.genres?.[0], 'series', s.name, ''),
+              cover: s.image?.original || s.image?.medium || '',
+              year: s.premiered?.slice(0, 4) || ''
+            });
+          }
+        }).catch(()=>{});
+
+      // 4. Музыка (iTunes + Deezer: Чистые жанры, без #музыка)
+      const pMusic = Promise.all([
+        jsonp(`https://itunes.apple.com/search?term=${encodeURIComponent(q)}&media=music&entity=song&limit=8${cyr?'&country=RU':''}`),
+        jsonp(`https://itunes.apple.com/search?term=${encodeURIComponent(q)}&media=music&entity=album&limit=6${cyr?'&country=RU':''}`),
+        jsonp(`https://api.deezer.com/search?q=${encodeURIComponent(q)}&limit=8&output=jsonp`)
+      ]).then(([s, a, dz]) => {
+        s?.results?.forEach(m => res.push({ title: m.trackName, origTitle: m.collectionName || '', creator: m.artistName, meta: '', cat: 'music', genre: normalizeGenre(m.primaryGenreName, 'music', m.artistName, m.trackName), cover: m.artworkUrl100?.replace('100x100bb','800x800bb'), year: m.releaseDate?.slice(0,4), sub: '🎵 Трек' }));
+        a?.results?.forEach(m => res.push({ title: m.collectionName, origTitle: m.collectionName, creator: m.artistName, meta: '', cat: 'music', genre: normalizeGenre(m.primaryGenreName, 'music', m.artistName, m.collectionName), cover: m.artworkUrl100?.replace('100x100bb','800x800bb'), year: m.releaseDate?.slice(0,4), sub: '💿 Альбом' }));
+        dz?.data?.forEach(m => res.push({ title: m.title, origTitle: m.album?.title || '', creator: m.artist?.name, meta: '', cat: 'music', genre: normalizeGenre('', 'music', m.artist?.name, m.title), cover: m.album?.cover_xl || m.album?.cover_big, sub: '🎵 Трек' }));
+      });
+
+      // 5. Игры (Wiki RU/EN: Чистые жанры, без #видеоигра)
+      const pGames = Promise.all([
+        fetch(`https://ru.wikipedia.org/w/api.php?action=query&generator=search&gsrsearch=${encodeURIComponent(q + ' (игра OR видеоигра)')}&gsrlimit=6&prop=pageimages|description|extracts&exintro=1&explaintext=1&exsentences=2&pithumbsize=600&pilicense=any&format=json&origin=*`).then(r=>r.json()).catch(()=>null),
+        fetch(`https://en.wikipedia.org/w/api.php?action=query&generator=search&gsrsearch=${encodeURIComponent(q + ' "video game"')}&gsrlimit=6&prop=pageimages|description|extracts&exintro=1&explaintext=1&exsentences=2&pithumbsize=600&pilicense=any&format=json&origin=*`).then(r=>r.json()).catch(()=>null)
+      ]).then(([ru, en]) => {
+        const parseG = pages => {
+          if (!pages) return;
+          Object.values(pages).forEach(p => {
+            const d = ((p.description || '') + ' ' + (p.extract || '')).toLowerCase();
+            if (d.includes('game') || d.includes('игр') || p.title.includes('игра')) {
+              const cr = extractCreatorFromText('game', (p.description || '') + ' ' + (p.extract || ''), 'Студия разработки');
+              res.push({
+                title: p.title.replace(/\s*\(.*игра.*?\)/i,'').replace(/\s*\(.*game.*?\)/i,'').trim(),
+                origTitle: p.title, creator: cr, meta: '', cat: 'game',
+                genre: normalizeGenre('', 'game', p.title, d),
+                cover: p.thumbnail?.source || ''
+              });
+            }
+          });
+        };
+        parseG(ru?.query?.pages); parseG(en?.query?.pages);
+      });
+
+      await Promise.all([pAnime, pAnimeRu, pMovies, pSeries, pMusic, pGames]);
+
+      const map = new Map();
+      for (const it of res) {
+        const k = (it.title.toLowerCase().replace(/^(the|a)\s+/i,'').trim() + '|' + it.cat);
+        if (!map.has(k)) map.set(k, it);
+        else {
+          const ex = map.get(k);
+          if (!ex.cover && it.cover) ex.cover = it.cover;
+          if (!ex.year && it.year) ex.year = it.year;
+          if (!ex.creator && it.creator) ex.creator = it.creator;
+          if (!ex.origTitle && it.origTitle) ex.origTitle = it.origTitle;
+          if (!ex.meta && it.meta) ex.meta = it.meta;
+        }
+      }
+      sugs = Array.from(map.values());
+      document.getElementById('spinner').classList.add('hidden');
+      renderSugs(false);
+    }
+
+    function setSugTab(t) {
+      curSugTab = t;
+      document.querySelectorAll('.s-tab').forEach(b => {
+        b.className = b.dataset.tab === t ? "s-tab px-2 py-0.5 rounded-lg theme-accent-bg text-white font-medium" : "s-tab px-2 py-0.5 rounded-lg bg-white/10 text-white/70";
+      });
+      renderSugList();
+    }
+
+    function renderSugs(isDisc = false) {
+      const counts = { all: sugs.length, anime: sugs.filter(i=>i.cat==='anime').length, movie: sugs.filter(i=>i.cat==='movie').length, series: sugs.filter(i=>i.cat==='series').length, music: sugs.filter(i=>i.cat==='music').length, game: sugs.filter(i=>i.cat==='game').length };
+      ['all','anime','movie','series','music','game'].forEach(k => document.getElementById(`c-${k}`).textContent = isDisc ? '' : `(${counts[k]})`);
+      renderSugList(isDisc);
+    }
+
+    function renderSugList(isDisc = false) {
+      const box = document.getElementById('sugBox'), list = document.getElementById('sugList');
+      list.innerHTML = '';
+      if (isDisc) {
+        const notice = document.createElement('div');
+        notice.className = 'px-3 py-1.5 bg-black/70 text-[10px] text-purple-300 flex items-center justify-between border-b border-white/10';
+        notice.innerHTML = `<span>🔥 Шедевры для коллекции</span><span class="text-[9px] text-white/40">Начните ввод для поиска</span>`;
+        list.appendChild(notice);
+      }
+      const filtered = sugs.filter(i => curSugTab === 'all' || i.cat === curSugTab);
+      if (!filtered.length) {
+        list.innerHTML = `<div class="p-4 text-center text-white/40">Ничего не найдено.</div>`;
+        box.classList.remove('hidden'); return;
+      }
+      filtered.forEach(it => {
+        const row = document.createElement('div');
+        row.className = "flex items-center gap-2.5 p-2 hover:bg-white/10 cursor-pointer";
+        row.innerHTML = `
+          <div class="w-8 h-11 bg-black/60 rounded-lg shrink-0 overflow-hidden flex items-center justify-center text-[10px] border border-white/10">
+            ${it.cover ? `<img src="${it.cover}" referrerpolicy="no-referrer" class="w-full h-full object-cover">` : '🖼️'}
+          </div>
+          <div class="flex-1 min-w-0">
+            <div class="font-semibold text-white truncate text-xs">${it.title} ${it.year?`<span class="text-white/40 font-normal">(${it.year})</span>`:''}</div>
+            <div class="text-[10px] text-white/50 mt-0.5 truncate">${it.meta ? `${it.meta} • ` : ''}${it.creator ? `${it.creator} • ` : ''}#${it.genre}</div>
+          </div>
+        `;
+        row.onclick = () => {
+          document.getElementById('fTitle').value = it.title;
+          document.getElementById('fCategory').value = it.cat;
+          updateCategoryLabels();
+          document.getElementById('fCreator').value = it.creator || '';
+          document.getElementById('fOrigTitle').value = it.origTitle || '';
+          document.getElementById('fMeta').value = it.meta || '';
+          document.getElementById('fGenre').value = it.genre;
+          if (it.cover) {
+            document.getElementById('fCover').value = it.cover;
+            document.getElementById('cPrev').innerHTML = `<img src="${it.cover}" referrerpolicy="no-referrer" class="w-full h-full object-cover">`;
+          }
+          box.classList.add('hidden');
+        };
+        list.appendChild(row);
+      });
+      box.classList.remove('hidden');
+    }
+
+    async function saveItem(e) {
+      e.preventDefault();
+      const title = document.getElementById('fTitle').value.trim();
+      if (!title) return;
+
+      const cat = document.getElementById('fCategory').value;
+      const creator = document.getElementById('fCreator').value.trim();
+      const origTitle = document.getElementById('fOrigTitle').value.trim();
+      const meta = document.getElementById('fMeta').value.trim();
+      const userMem = document.getElementById('fMemory').value.trim();
+
+      const packedMem = packMemory(creator, origTitle, meta, userMem);
+
+      const item = {
+        id: editId || Date.now(),
+        title,
+        category: cat,
+        genre: normalizeGenre(document.getElementById('fGenre').value, cat, title, ''),
+        rating: Number(document.getElementById('fRating').value) || 10,
+        memory: packedMem,
+        sourceUrl: document.getElementById('fSource').value.trim(),
+        coverUrl: document.getElementById('fCover').value.trim(),
+        dateAdded: new Date().toLocaleDateString('ru-RU')
+      };
+
+      const tx = db.transaction('items', 'readwrite');
+      tx.objectStore('items').put(item);
+      tx.oncomplete = async () => {
+        if (supabaseClient) {
+          await supabaseClient.from('items').upsert({
+            id: item.id, title: item.title, category: item.category, genre: item.genre, rating: item.rating,
+            memory: item.memory, source_url: item.sourceUrl, cover_url: item.coverUrl, date_added: item.dateAdded
+          });
+        }
+        closeModal();
+        loadItems();
+      };
+    }
+
+    function loadItems() {
+      db.transaction('items', 'readonly').objectStore('items').getAll().onsuccess = e => {
+        allItems = (e.target.result || []).map(parseItemData).reverse();
+        renderGenresBar();
+        renderCards();
+      };
+    }
+
+    // Хэштеги на главной: СТРОГО без мусора #видеоигра и #музыка
+    function renderGenresBar() {
+      const gb = document.getElementById('genresBar');
+      gb.innerHTML = '';
+      if (curFilter === 'all') { gb.classList.add('hidden'); return; }
+
+      const inCat = allItems.filter(i => i.category === curFilter);
+      const used = new Set();
+      inCat.forEach(i => {
+        if (!i.genre) return;
+        i.genre.split(/[,/]/).forEach(g => {
+          const c = g.replace(/[#]/g, '').trim();
+          if (c && c.length > 1 && !BANNED_GENRES.has(c.toLowerCase())) {
+            used.add(c);
+          }
+        });
+      });
+
+      const list = Array.from(used);
+      if (!list.length) { gb.classList.add('hidden'); return; }
+      gb.classList.remove('hidden');
+
+      const bAll = document.createElement('button');
+      bAll.className = `px-3 py-1 rounded-full text-xs font-semibold transition ${curGenre==='all'?'theme-accent-bg text-white shadow-sm':'text-white/50 bg-[#1c1c1e] border border-white/5'}`;
+      bAll.textContent = 'Все хэштеги';
+      bAll.onclick = () => { curGenre = 'all'; renderGenresBar(); renderCards(); };
+      gb.appendChild(bAll);
+
+      list.forEach(g => {
+        const b = document.createElement('button');
+        const isActive = curGenre.toLowerCase() === g.toLowerCase();
+        b.className = `px-3 py-1 rounded-full text-xs font-semibold transition ${isActive?'theme-accent-bg text-white shadow-sm':'text-white/60 bg-[#1c1c1e] border border-white/5 hover:text-white'}`;
+        b.textContent = '#' + g;
+        b.onclick = () => {
+          curGenre = (isActive ? 'all' : g);
+          renderGenresBar();
+          renderCards();
+        };
+        gb.appendChild(b);
+      });
+    }
+
+    function renderCards() {
+      const q = document.getElementById('searchInput').value.toLowerCase();
+      const grid = document.getElementById('cardsGrid');
+      grid.innerHTML = '';
+      const list = allItems.filter(i => {
+        const mCat = curFilter === 'all' || i.category === curFilter;
+        const mGen = curGenre === 'all' || (i.genre && i.genre.toLowerCase().includes(curGenre.toLowerCase()));
+        const mQ = i.title.toLowerCase().includes(q) || (i.creator && i.creator.toLowerCase().includes(q)) || (i.memory && i.memory.toLowerCase().includes(q)) || (i.origTitle && i.origTitle.toLowerCase().includes(q)) || (i.genre && i.genre.toLowerCase().includes(q));
+        return mCat && mGen && mQ;
+      });
+      document.getElementById('emptyState').classList.toggle('hidden', list.length > 0);
+
+      const catBadges = {
+        anime: { text: '🌸 Аниме', class: 'text-pink-300' },
+        movie: { text: '🎬 Фильм', class: 'text-rose-300' },
+        series: { text: '📺 Сериал', class: 'text-sky-300' },
+        music: { text: '🎵 Музыка', class: 'text-emerald-300' },
+        game: { text: '🎮 Игра', class: 'text-amber-300' }
+      };
+
+      list.forEach(i => {
+        const badge = catBadges[i.category] || { text: 'Медиа', class: 'text-purple-300' };
+        const c = document.createElement('div');
+        c.className = "ios-glass border rounded-3xl overflow-hidden flex flex-col justify-between transition-all duration-300 hover:scale-[1.01] active:scale-[0.99] shadow-lg cursor-pointer";
+        c.innerHTML = `
+          <div onclick="openDetailModal(${i.id})">
+            <div class="h-52 w-full bg-black/60 relative overflow-hidden">
+              <img src="${i.coverUrl || 'https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?w=500'}" referrerpolicy="no-referrer" class="w-full h-full object-cover">
+              <div class="absolute inset-0 bg-gradient-to-t from-[#141417] via-transparent to-transparent"></div>
+              <div class="absolute top-2.5 left-2.5 bg-black/60 backdrop-blur-md px-2.5 py-0.5 rounded-full text-[10px] font-semibold ${badge.class} border border-white/10">${badge.text}</div>
+              <div class="absolute top-2.5 right-2.5 bg-black/60 backdrop-blur-md px-2 py-0.5 rounded-full text-[10px] text-amber-300 font-bold border border-white/10">★ ${i.rating}</div>
+            </div>
+            <div class="p-3.5 space-y-1">
+              <h4 class="font-bold text-sm text-white truncate tracking-tight">${i.title}</h4>
+              ${i.origTitle ? `<p class="text-[11px] text-white/50 truncate font-normal">${i.origTitle}</p>` : ''}
+              ${i.creator ? `<p class="text-[11px] text-white/70 truncate font-medium">${i.creator}</p>` : ''}
+              <div class="flex items-center gap-2 pt-0.5">
+                <span class="text-[10px] theme-accent-text font-semibold">#${i.genre}</span>
+                ${i.meta ? `<span class="text-[10px] text-white/40 truncate">• ${i.meta}</span>` : ''}
+              </div>
+              ${i.memory ? `<p class="mt-2 text-[11px] text-slate-300/90 italic line-clamp-2 bg-white/[0.04] p-2 rounded-xl border-l-2 theme-accent-border">"${i.memory}"</p>` : ''}
+            </div>
+          </div>
+          <div class="p-3.5 pt-0">
+            <div class="flex justify-between items-center text-[10px] text-white/40 border-t border-white/[0.08] pt-2 mt-1">
+              <span>${i.dateAdded}</span>
+              <span class="text-xs text-white/60 font-semibold" onclick="openDetailModal(${i.id})">Открыть карточку ➔</span>
+            </div>
+          </div>
+        `;
+        grid.appendChild(c);
+      });
+    }
+
+    // ДЕТАЛЬНОЕ ОКНО (КИНОПОИСК / SHIKIMORI / ZONA)
+    function openDetailModal(id) {
+      const it = allItems.find(x => x.id === id);
+      if (!it) return;
+
+      const catBadges = {
+        anime: { text: '🌸 Аниме', class: 'text-pink-300' },
+        movie: { text: '🎬 Фильм', class: 'text-rose-300' },
+        series: { text: '📺 Сериал', class: 'text-sky-300' },
+        music: { text: '🎵 Музыка', class: 'text-emerald-300' },
+        game: { text: '🎮 Игра', class: 'text-amber-300' }
+      };
+
+      const creatorConfig = {
+        anime: { icon: '👥', label: 'Студия и создатели:' },
+        movie: { icon: '🎬', label: 'Режиссёр:' },
+        series: { icon: '📺', label: 'Создатели / Сеть:' },
+        music: { icon: '🎵', label: 'Исполнитель:' },
+        game: { icon: '🎮', label: 'Разработчик:' }
+      };
+
+      document.getElementById('dCover').src = it.coverUrl || 'https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?w=500';
+      document.getElementById('dBadge').textContent = catBadges[it.category]?.text || 'Медиа';
+      document.getElementById('dBadge').className = `px-2.5 py-0.5 rounded-full text-[11px] font-semibold backdrop-blur-md bg-black/60 border border-white/10 ${catBadges[it.category]?.class || ''}`;
+      document.getElementById('dYear').textContent = it.dateAdded;
+      document.getElementById('dRating').textContent = it.rating;
+      document.getElementById('dTitle').textContent = it.title;
+
+      const sub = [it.origTitle, it.meta].filter(Boolean).join(' • ');
+      document.getElementById('dOrigSubtitle').textContent = sub || '';
+
+      // Мета-строка (Хронометраж для фильмов, Сезоны/Серии для сериалов, Эпизоды для аниме)
+      const metaRow = document.getElementById('rowMeta');
+      if (it.meta) {
+        const metaIcon = document.getElementById('dMetaIcon');
+        const metaLabel = document.getElementById('dMetaLabel');
+        if (it.category === 'movie') { metaIcon.textContent = '⏱'; metaLabel.textContent = 'Хронометраж: '; }
+        else if (it.category === 'series') { metaIcon.textContent = '📺'; metaLabel.textContent = 'Сезоны и серии: '; }
+        else if (it.category === 'anime') { metaIcon.textContent = '📺'; metaLabel.textContent = 'Эпизоды: '; }
+        else { metaIcon.textContent = 'ℹ️'; metaLabel.textContent = 'Инфо: '; }
+        document.getElementById('dMeta').textContent = it.meta;
+        metaRow.classList.remove('hidden');
+      } else {
+        metaRow.classList.add('hidden');
+      }
+
+      // Создатели
+      const cRow = document.getElementById('rowCreator');
+      const cfg = creatorConfig[it.category] || creatorConfig.movie;
+      if (it.creator) {
+        document.getElementById('dCreatorIcon').textContent = cfg.icon;
+        document.getElementById('dCreatorLabel').textContent = cfg.label + ' ';
+        document.getElementById('dCreatorText').textContent = it.creator;
+        cRow.classList.remove('hidden');
+      } else {
+        cRow.classList.add('hidden');
+      }
+
+      document.getElementById('dGenre').textContent = '#' + it.genre;
+      document.getElementById('dMemory').textContent = it.memory || 'Личных заметок пока нет.';
+
+      const sBox = document.getElementById('dSourceBox');
+      const playText = it.category === 'music' ? '▶ Слушать' : (it.category === 'game' ? '▶ Играть' : '▶ Смотреть');
+      sBox.innerHTML = it.sourceUrl 
+        ? `<a href="${it.sourceUrl}" target="_blank" class="block w-full py-3 theme-accent-bg hover:opacity-90 text-white rounded-2xl text-xs font-bold text-center transition shadow-lg flex items-center justify-center gap-2"><span>${playText}</span></a>`
+        : '';
+
+      document.getElementById('dEditBtn').onclick = () => { closeDetailModal(); openEditModal(it.id); };
+      document.getElementById('dDelBtn').onclick = () => { closeDetailModal(); delItem(it.id); };
+
+      document.getElementById('cardDetailModal').classList.remove('hidden');
+    }
+
+    function closeDetailModal() { document.getElementById('cardDetailModal').classList.add('hidden'); }
+
+    function openAddModal() {
+      editId = null;
+      document.getElementById('modalTitle').textContent = '✨ Добавить в память';
+      document.getElementById('itemForm').reset();
+      document.getElementById('cPrev').innerHTML = '🖼️';
+      updateCategoryLabels();
+      document.getElementById('itemModal').classList.remove('hidden');
+    }
+
+    function openEditModal(id) {
+      const it = allItems.find(x => x.id === id);
+      if (!it) return;
+      editId = id;
+      document.getElementById('modalTitle').textContent = '✏️ Редактировать запись';
+      document.getElementById('fTitle').value = it.title || '';
+      document.getElementById('fCategory').value = it.category || 'anime';
+      updateCategoryLabels();
+      document.getElementById('fCreator').value = it.creator || '';
+      document.getElementById('fOrigTitle').value = it.origTitle || '';
+      document.getElementById('fMeta').value = it.meta || '';
+      document.getElementById('fGenre').value = it.genre || '';
+      document.getElementById('fRating').value = it.rating || 10;
+      document.getElementById('fMemory').value = it.memory || '';
+      document.getElementById('fSource').value = it.sourceUrl || '';
+      document.getElementById('fCover').value = it.coverUrl || '';
+      if (it.coverUrl) document.getElementById('cPrev').innerHTML = `<img src="${it.coverUrl}" referrerpolicy="no-referrer" class="w-full h-full object-cover">`;
+      document.getElementById('itemModal').classList.remove('hidden');
+    }
+
+    function closeModal() {
+      document.getElementById('itemModal').classList.add('hidden');
+      document.getElementById('sugBox').classList.add('hidden');
+    }
+
+    async function delItem(id) {
+      if (!confirm('Удалить эту запись?')) return;
+      const tx = db.transaction('items', 'readwrite');
+      tx.objectStore('items').delete(id);
+      tx.oncomplete = async () => {
+        if (supabaseClient) await supabaseClient.from('items').delete().eq('id', id);
+        loadItems();
+      };
+    }
+
+    function setFilter(cat) {
+      curFilter = cat; curGenre = 'all';
+      document.querySelectorAll('.cat-btn').forEach(b => {
+        b.className = b.dataset.cat === cat ? "cat-btn shrink-0 px-3.5 py-1.5 rounded-full text-xs font-semibold theme-accent-bg text-white shadow-sm" : "cat-btn shrink-0 px-3.5 py-1.5 rounded-full text-xs font-semibold bg-[#1c1c1e] text-slate-300 border border-white/5";
+      });
+      renderGenresBar(); renderCards();
+    }
+
+    function exportBackup() {
+      const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(allItems, null, 2));
+      const a = document.createElement('a'); a.href = dataStr; a.download = `backup_${Date.now()}.json`;
+      document.body.appendChild(a); a.click(); a.remove();
+    }
+
+    document.getElementById('searchInput').addEventListener('input', renderCards);
+    document.addEventListener('click', e => {
+      const sb = document.getElementById('sugBox'), inp = document.getElementById('fTitle');
+      if (!sb.contains(e.target) && e.target !== inp) sb.classList.add('hidden');
+    });
+
+    window.addEventListener('DOMContentLoaded', async () => {
+      const targetDb = await initDB();
+      await recoverOld(targetDb);
+      loadItems();
+      if (supabaseClient) { await syncCloud(); loadItems(); }
+    });
+  </script>
+</body>
+</html>
