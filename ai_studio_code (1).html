@@ -1,0 +1,510 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Библиотека Всего</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>.line-clamp-2{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}</style>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen font-sans selection:bg-purple-500 selection:text-white">
+
+  <script>
+    const SB_URL = 'https://zwlvkxieirgizyyzpyxd.supabase.co';
+    const SB_KEY = 'sb_publishable_s4c5cypmhF6GXCoWeP3SQA_KnnnZCeC';
+    let supabaseClient = null;
+    try { if (window.supabase) supabaseClient = window.supabase.createClient(SB_URL, SB_KEY); } catch(e){}
+  </script>
+
+  <!-- Шапка -->
+  <header class="sticky top-0 z-40 bg-slate-900/80 backdrop-blur-md border-b border-slate-800">
+    <div class="max-w-7xl mx-auto px-4 py-3 flex flex-wrap items-center justify-between gap-3">
+      <div class="flex items-center gap-2.5">
+        <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-purple-500 to-indigo-600 flex items-center justify-center font-bold text-white shadow-lg">✨</div>
+        <div>
+          <h1 class="text-base font-bold bg-gradient-to-r from-purple-400 to-pink-300 bg-clip-text text-transparent">Библиотека Всего</h1>
+          <p class="text-[10px] text-emerald-400 flex items-center gap-1">● Облако активно</p>
+        </div>
+      </div>
+      <div class="flex items-center gap-2 w-full sm:w-auto">
+        <input id="searchInput" type="text" placeholder="Поиск..." class="w-full sm:w-56 bg-slate-800 border border-slate-700 rounded-xl px-3 py-1.5 text-xs text-white focus:outline-none focus:ring-1 focus:ring-purple-500">
+        <button onclick="exportBackup()" title="Скачать бэкап" class="p-2 bg-slate-800 border border-slate-700 rounded-xl text-purple-300 text-xs">💾</button>
+        <button onclick="openAddModal()" class="bg-purple-600 hover:bg-purple-500 text-white font-medium px-3.5 py-1.5 rounded-xl text-xs transition flex items-center gap-1 shadow-md">
+          <span>+</span> Добавить
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Контент -->
+  <main class="max-w-7xl mx-auto px-4 py-5">
+    <div class="flex flex-wrap items-center gap-1.5 mb-2.5">
+      <button onclick="setFilter('all')" class="cat-btn px-3 py-1 rounded-full text-xs font-medium border bg-purple-600 border-purple-500 text-white" data-cat="all">Все</button>
+      <button onclick="setFilter('movie')" class="cat-btn px-3 py-1 rounded-full text-xs font-medium border border-slate-800 bg-slate-900 text-slate-300" data-cat="movie">🎬 Фильмы</button>
+      <button onclick="setFilter('series')" class="cat-btn px-3 py-1 rounded-full text-xs font-medium border border-slate-800 bg-slate-900 text-slate-300" data-cat="series">📺 Сериалы</button>
+      <button onclick="setFilter('music')" class="cat-btn px-3 py-1 rounded-full text-xs font-medium border border-slate-800 bg-slate-900 text-slate-300" data-cat="music">🎵 Музыка</button>
+      <button onclick="setFilter('game')" class="cat-btn px-3 py-1 rounded-full text-xs font-medium border border-slate-800 bg-slate-900 text-slate-300" data-cat="game">🎮 Игры</button>
+    </div>
+
+    <div id="genresBar" class="flex flex-wrap gap-1 mb-6 min-h-[24px]"></div>
+    <div id="cardsGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5"></div>
+    <div id="emptyState" class="hidden text-center py-16 text-slate-500 text-xs">📦 В библиотеке пока пусто.</div>
+  </main>
+
+  <!-- Модальное окно -->
+  <div id="itemModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm hidden p-4 overflow-y-auto">
+    <div class="bg-slate-900 border border-slate-800 w-full max-w-lg rounded-2xl p-5 shadow-2xl relative my-6">
+      <button type="button" onclick="closeModal()" class="absolute top-4 right-4 text-slate-400 hover:text-white">✕</button>
+      <h2 id="modalTitle" class="text-base font-bold mb-3 text-white">✨ Добавить в память</h2>
+
+      <form id="itemForm" onsubmit="saveItem(event)" class="space-y-3">
+        <div class="relative">
+          <label class="block text-[11px] text-slate-400 mb-1">Название / Исполнитель *</label>
+          <div class="relative">
+            <input id="fTitle" type="text" autocomplete="off" required placeholder="Например: Hunt, Интерстеллар, Radiohead..." class="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:ring-1 focus:ring-purple-500" oninput="handleTitleInput(this.value)">
+            <span id="spinner" class="absolute right-3 top-2 text-xs hidden animate-spin">⏳</span>
+          </div>
+
+          <!-- Выпадающий список -->
+          <div id="sugBox" class="absolute left-0 right-0 top-full mt-1 bg-slate-900 border border-slate-700 rounded-xl shadow-2xl z-50 hidden flex flex-col overflow-hidden">
+            <div class="flex gap-1 p-1.5 bg-slate-950 border-b border-slate-800 text-[10px] overflow-x-auto">
+              <button type="button" onclick="setSugTab('all')" class="s-tab px-2 py-0.5 rounded bg-purple-600 text-white font-medium" data-tab="all">Все <span id="c-all"></span></button>
+              <button type="button" onclick="setSugTab('movie')" class="s-tab px-2 py-0.5 rounded bg-slate-800 text-rose-300" data-tab="movie">🎬 Кино <span id="c-movie"></span></button>
+              <button type="button" onclick="setSugTab('music')" class="s-tab px-2 py-0.5 rounded bg-slate-800 text-emerald-300" data-tab="music">🎵 Музыка <span id="c-music"></span></button>
+              <button type="button" onclick="setSugTab('game')" class="s-tab px-2 py-0.5 rounded bg-slate-800 text-amber-300" data-tab="game">🎮 Игры <span id="c-game"></span></button>
+              <button type="button" onclick="setSugTab('series')" class="s-tab px-2 py-0.5 rounded bg-slate-800 text-sky-300" data-tab="series">📺 Сериалы <span id="c-series"></span></button>
+            </div>
+            <div id="sugList" class="overflow-y-auto max-h-60 divide-y divide-slate-800 text-xs"></div>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-2.5">
+          <div>
+            <label class="block text-[11px] text-slate-400 mb-1">Категория</label>
+            <select id="fCategory" class="w-full bg-slate-800 border border-slate-700 rounded-xl px-2.5 py-1.5 text-xs text-white">
+              <option value="movie">Фильм</option>
+              <option value="series">Сериал</option>
+              <option value="music">Музыка</option>
+              <option value="game">Игра</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-[11px] text-slate-400 mb-1">Жанр</label>
+            <input id="fGenre" type="text" placeholder="Триллер, Рок, RPG..." class="w-full bg-slate-800 border border-slate-700 rounded-xl px-2.5 py-1.5 text-xs text-white">
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-2.5">
+          <div>
+            <label class="block text-[11px] text-slate-400 mb-1">Оценка (1-10)</label>
+            <input id="fRating" type="number" min="1" max="10" value="10" class="w-full bg-slate-800 border border-slate-700 rounded-xl px-2.5 py-1.5 text-xs text-white">
+          </div>
+          <div>
+            <label class="block text-[11px] text-slate-400 mb-1">Обложка (URL)</label>
+            <div class="flex gap-1.5">
+              <input id="fCover" type="text" placeholder="https://..." class="w-full bg-slate-800 border border-slate-700 rounded-xl px-2.5 py-1.5 text-xs text-white">
+              <div id="cPrev" class="w-7 h-7 bg-slate-800 rounded shrink-0 flex items-center justify-center text-[10px] border border-slate-700">🖼️</div>
+            </div>
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-[11px] text-purple-300 mb-1">💭 Воспоминания / Рецензия</label>
+          <textarea id="fMemory" rows="2" placeholder="С кем смотрели, что чувствовали..." class="w-full bg-slate-800 border border-purple-900/40 rounded-xl p-2 text-xs text-white"></textarea>
+        </div>
+
+        <div>
+          <label class="block text-[11px] text-slate-400 mb-1">Ссылка на источник (просмотр / трекер)</label>
+          <input id="fSource" type="text" placeholder="https://..." class="w-full bg-slate-800 border border-slate-700 rounded-xl px-2.5 py-1.5 text-xs text-white">
+        </div>
+
+        <div class="flex justify-end gap-2 pt-2">
+          <button type="button" onclick="closeModal()" class="px-3 py-1.5 text-xs text-slate-400">Отмена</button>
+          <button type="submit" id="btnSave" class="px-4 py-1.5 bg-purple-600 hover:bg-purple-500 text-white rounded-xl text-xs font-semibold shadow">Сохранить</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    const MASTER_DB = 'LibraryOfMemories_Main';
+    let db = null, allItems = [], curFilter = 'all', curGenre = 'all', editId = null, sTimer = null, sugs = [], curSugTab = 'all';
+
+    // JSONP без CORS
+    function jsonp(url) {
+      return new Promise(res => {
+        const cb = 'cb_' + Math.random().toString(36).slice(2) + '_' + Date.now();
+        const s = document.createElement('script');
+        window[cb] = d => { clean(); res(d); };
+        const clean = () => { delete window[cb]; s.remove(); };
+        s.onerror = () => { clean(); res(null); };
+        s.src = url + (url.includes('?') ? '&' : '?') + 'callback=' + cb;
+        document.body.appendChild(s);
+        setTimeout(() => { clean(); res(null); }, 4000);
+      });
+    }
+
+    // Инициализация базы данных
+    function initDB() {
+      return new Promise(res => {
+        if (db) return res(db);
+        const req = indexedDB.open(MASTER_DB, 1);
+        req.onupgradeneeded = e => e.target.result.createObjectStore('items', { keyPath: 'id' });
+        req.onsuccess = e => { db = e.target.result; res(db); };
+      });
+    }
+
+    // Авто-сканер старых версий
+    async function recoverOld(target) {
+      const oldNames = ['LibraryOfEverythingDB','LibraryOfEverything_V3','LibraryOfEverything_V5','LibraryOfEverything_V7','LibraryOfEverything_V9','LibraryOfEverything_V10','LibraryOfEverything_V11'];
+      for (const n of oldNames) {
+        await new Promise(r => {
+          const rq = indexedDB.open(n);
+          rq.onsuccess = e => {
+            const o = e.target.result;
+            if (o.objectStoreNames.contains('items')) {
+              const tx = o.transaction('items', 'readonly');
+              tx.objectStore('items').getAll().onsuccess = ev => {
+                const list = ev.target.result || [];
+                for (const it of list) {
+                  const wtx = target.transaction('items', 'readwrite');
+                  wtx.objectStore('items').put(it);
+                }
+                o.close(); r();
+              };
+            } else { o.close(); r(); }
+          };
+          rq.onerror = () => r();
+        });
+      }
+    }
+
+    // Синхронизация с Supabase
+    async function syncCloud() {
+      if (!supabaseClient) return;
+      try {
+        const { data } = await supabaseClient.from('items').select('*');
+        if (data && data.length) {
+          for (const it of data) {
+            const tx = db.transaction('items', 'readwrite');
+            tx.objectStore('items').put({
+              id: it.id, title: it.title, category: it.category, genre: it.genre, rating: it.rating,
+              memory: it.memory, sourceUrl: it.source_url, coverUrl: it.cover_url, dateAdded: it.date_added
+            });
+          }
+        }
+        const tx = db.transaction('items', 'readonly');
+        tx.objectStore('items').getAll().onsuccess = async e => {
+          for (const it of (e.target.result || [])) {
+            await supabaseClient.from('items').upsert({
+              id: it.id, title: it.title, category: it.category, genre: it.genre, rating: it.rating,
+              memory: it.memory, source_url: it.sourceUrl, cover_url: it.coverUrl, date_added: it.dateAdded
+            });
+          }
+        };
+      } catch(e){}
+    }
+
+    // Поиск
+    function handleTitleInput(v) {
+      clearTimeout(sTimer);
+      const q = v.trim();
+      if (q.length < 2) { document.getElementById('sugBox').classList.add('hidden'); return; }
+      document.getElementById('spinner').classList.remove('hidden');
+      sTimer = setTimeout(() => searchMedia(q), 250);
+    }
+
+    async function searchMedia(q) {
+      const cyr = /[\u0400-\u04FF]/.test(q);
+      const res = [];
+
+      // Фильмы (iTunes Movie + Wiki RU/EN с pilicense=any)
+      const pMovies = Promise.all([
+        jsonp(`https://itunes.apple.com/search?term=${encodeURIComponent(q)}&media=movie&entity=movie&limit=8`),
+        fetch(`https://en.wikipedia.org/w/api.php?action=query&generator=search&gsrsearch=${encodeURIComponent(q + ' film')}&gsrlimit=7&prop=pageimages|description&pithumbsize=600&pilicense=any&format=json&origin=*`).then(r=>r.json()).catch(()=>null),
+        fetch(`https://ru.wikipedia.org/w/api.php?action=query&generator=search&gsrsearch=${encodeURIComponent(q + ' (фильм OR кино)')}&gsrlimit=7&prop=pageimages|description&pithumbsize=600&pilicense=any&format=json&origin=*`).then(r=>r.json()).catch(()=>null)
+      ]).then(([it, enW, ruW]) => {
+        if (it?.results) it.results.forEach(m => res.push({ title: m.trackName, cat: 'movie', genre: m.primaryGenreName, cover: m.artworkUrl100?.replace('100x100bb','800x800bb'), year: m.releaseDate?.slice(0,4) }));
+        const parseW = (pages) => {
+          if (!pages) return;
+          Object.values(pages).forEach(p => {
+            const d = (p.description || '').toLowerCase();
+            if ((d.includes('film') || d.includes('фильм')) && !d.includes('футболист') && !d.includes('музыкант')) {
+              res.push({ title: p.title.replace(/\s*\(.*film.*?\)/i,'').replace(/\s*\(фильм.*?\)/i,'').trim(), cat: 'movie', genre: 'Фильм', cover: p.thumbnail?.source || '', year: d.match(/\b(19\d\d|20\d\d)\b/)?.[0] || '' });
+            }
+          });
+        };
+        parseW(enW?.query?.pages); parseW(ruW?.query?.pages);
+      });
+
+      // Музыка (iTunes Songs/Albums + Deezer)
+      const pMusic = Promise.all([
+        jsonp(`https://itunes.apple.com/search?term=${encodeURIComponent(q)}&media=music&entity=song&limit=8${cyr?'&country=RU':''}`),
+        jsonp(`https://itunes.apple.com/search?term=${encodeURIComponent(q)}&media=music&entity=album&limit=6${cyr?'&country=RU':''}`),
+        jsonp(`https://api.deezer.com/search?q=${encodeURIComponent(q)}&limit=8&output=jsonp`)
+      ]).then(([s, a, dz]) => {
+        s?.results?.forEach(m => res.push({ title: `${m.artistName} — ${m.trackName}`, cat: 'music', genre: m.primaryGenreName, cover: m.artworkUrl100?.replace('100x100bb','800x800bb'), year: m.releaseDate?.slice(0,4), sub: '🎵 Трек' }));
+        a?.results?.forEach(m => res.push({ title: `${m.artistName} — ${m.collectionName}`, cat: 'music', genre: m.primaryGenreName, cover: m.artworkUrl100?.replace('100x100bb','800x800bb'), year: m.releaseDate?.slice(0,4), sub: '💿 Альбом' }));
+        dz?.data?.forEach(m => res.push({ title: `${m.artist.name} — ${m.title}`, cat: 'music', genre: 'Музыка', cover: m.album?.cover_xl || m.album?.cover_big, sub: '🎵 Трек' }));
+      });
+
+      // Игры (Wiki RU/EN)
+      const pGames = Promise.all([
+        fetch(`https://ru.wikipedia.org/w/api.php?action=query&generator=search&gsrsearch=${encodeURIComponent(q + ' (игра OR видеоигра)')}&gsrlimit=6&prop=pageimages|description&pithumbsize=600&pilicense=any&format=json&origin=*`).then(r=>r.json()).catch(()=>null),
+        fetch(`https://en.wikipedia.org/w/api.php?action=query&generator=search&gsrsearch=${encodeURIComponent(q + ' "video game"')}&gsrlimit=6&prop=pageimages|description&pithumbsize=600&pilicense=any&format=json&origin=*`).then(r=>r.json()).catch(()=>null)
+      ]).then(([ru, en]) => {
+        const parseG = pages => {
+          if (!pages) return;
+          Object.values(pages).forEach(p => {
+            const d = (p.description || '').toLowerCase();
+            if (d.includes('game') || d.includes('игр') || p.title.includes('игра')) {
+              res.push({ title: p.title.replace(/\s*\(.*игра.*?\)/i,'').replace(/\s*\(.*game.*?\)/i,'').trim(), cat: 'game', genre: 'Видеоигра', cover: p.thumbnail?.source || '' });
+            }
+          });
+        };
+        parseG(ru?.query?.pages); parseG(en?.query?.pages);
+      });
+
+      // Сериалы (TVMaze)
+      const pSeries = fetch(`https://api.tvmaze.com/search/shows?q=${encodeURIComponent(q)}`).then(r=>r.json()).then(d => {
+        d?.slice(0,5).forEach(i => res.push({ title: i.show.name, cat: 'series', genre: i.show.genres?.[0] || 'Сериал', cover: i.show.image?.original || i.show.image?.medium, year: i.show.premiered?.slice(0,4) }));
+      }).catch(()=>{});
+
+      await Promise.all([pMovies, pMusic, pGames, pSeries]);
+
+      // Умное слияние (приоритет обложкам)
+      const map = new Map();
+      for (const it of res) {
+        const k = (it.title.toLowerCase().replace(/^(the|a)\s+/i,'').trim() + '|' + it.cat);
+        if (!map.has(k)) map.set(k, it);
+        else {
+          const ex = map.get(k);
+          if (!ex.cover && it.cover) ex.cover = it.cover;
+          if (!ex.year && it.year) ex.year = it.year;
+        }
+      }
+      sugs = Array.from(map.values());
+      document.getElementById('spinner').classList.add('hidden');
+      renderSugs();
+    }
+
+    function setSugTab(t) {
+      curSugTab = t;
+      document.querySelectorAll('.s-tab').forEach(b => {
+        b.className = b.dataset.tab === t ? "s-tab px-2 py-0.5 rounded bg-purple-600 text-white font-medium" : "s-tab px-2 py-0.5 rounded bg-slate-800 text-slate-300";
+      });
+      renderSugList();
+    }
+
+    function renderSugs() {
+      const counts = { all: sugs.length, movie: sugs.filter(i=>i.cat==='movie').length, music: sugs.filter(i=>i.cat==='music').length, game: sugs.filter(i=>i.cat==='game').length, series: sugs.filter(i=>i.cat==='series').length };
+      ['all','movie','music','game','series'].forEach(k => document.getElementById(`c-${k}`).textContent = `(${counts[k]})`);
+      renderSugList();
+    }
+
+    function renderSugList() {
+      const box = document.getElementById('sugBox'), list = document.getElementById('sugList');
+      list.innerHTML = '';
+      const filtered = sugs.filter(i => curSugTab === 'all' || i.cat === curSugTab);
+      if (!filtered.length) {
+        list.innerHTML = `<div class="p-4 text-center text-slate-400">Ничего не найдено.</div>`;
+        box.classList.remove('hidden'); return;
+      }
+      filtered.forEach(it => {
+        const row = document.createElement('div');
+        row.className = "flex items-center gap-2.5 p-2 hover:bg-slate-800 cursor-pointer";
+        row.innerHTML = `
+          <div class="w-9 h-12 bg-slate-950 rounded shrink-0 overflow-hidden flex items-center justify-center text-[10px] border border-slate-700">
+            ${it.cover ? `<img src="${it.cover}" referrerpolicy="no-referrer" class="w-full h-full object-cover">` : '🖼️'}
+          </div>
+          <div class="flex-1 min-w-0">
+            <div class="font-semibold text-white truncate text-xs">${it.title} ${it.year?`<span class="text-slate-400 font-normal">(${it.year})</span>`:''}</div>
+            <div class="text-[10px] text-slate-400 mt-0.5">${it.sub ? `${it.sub} • ` : ''}${it.genre || ''}</div>
+          </div>
+        `;
+        row.onclick = () => {
+          document.getElementById('fTitle').value = it.title;
+          document.getElementById('fCategory').value = it.cat;
+          document.getElementById('fGenre').value = it.genre || '';
+          if (it.cover) {
+            document.getElementById('fCover').value = it.cover;
+            document.getElementById('cPrev').innerHTML = `<img src="${it.cover}" referrerpolicy="no-referrer" class="w-full h-full object-cover">`;
+          }
+          box.classList.add('hidden');
+        };
+        list.appendChild(row);
+      });
+      box.classList.remove('hidden');
+    }
+
+    // Сохранение записи
+    async function saveItem(e) {
+      e.preventDefault();
+      const title = document.getElementById('fTitle').value.trim();
+      if (!title) return;
+
+      const item = {
+        id: editId || Date.now(),
+        title,
+        category: document.getElementById('fCategory').value,
+        genre: document.getElementById('fGenre').value.trim() || 'Разное',
+        rating: Number(document.getElementById('fRating').value) || 10,
+        memory: document.getElementById('fMemory').value.trim(),
+        sourceUrl: document.getElementById('fSource').value.trim(),
+        coverUrl: document.getElementById('fCover').value.trim(),
+        dateAdded: new Date().toLocaleDateString('ru-RU')
+      };
+
+      const tx = db.transaction('items', 'readwrite');
+      tx.objectStore('items').put(item);
+      tx.oncomplete = async () => {
+        if (supabaseClient) {
+          await supabaseClient.from('items').upsert({
+            id: item.id, title: item.title, category: item.category, genre: item.genre, rating: item.rating,
+            memory: item.memory, source_url: item.sourceUrl, cover_url: item.coverUrl, date_added: item.dateAdded
+          });
+        }
+        closeModal();
+        loadItems();
+      };
+    }
+
+    function loadItems() {
+      const tx = db.transaction('items', 'readonly');
+      tx.objectStore('items').getAll().onsuccess = e => {
+        allItems = (e.target.result || []).reverse();
+        renderGenres();
+        renderCards();
+      };
+    }
+
+    function renderGenres() {
+      const gb = document.getElementById('genresBar');
+      gb.innerHTML = '';
+      const list = allItems.filter(i => curFilter === 'all' || i.category === curFilter);
+      const genres = [...new Set(list.map(i => i.genre).filter(Boolean))];
+      if (!genres.length) return;
+      const bAll = document.createElement('button');
+      bAll.className = `px-2.5 py-0.5 rounded text-[10px] font-medium ${curGenre==='all'?'bg-purple-900 text-purple-300':'text-slate-400'}`;
+      bAll.textContent = 'Все';
+      bAll.onclick = () => { curGenre = 'all'; renderGenres(); renderCards(); };
+      gb.appendChild(bAll);
+      genres.forEach(g => {
+        const b = document.createElement('button');
+        b.className = `px-2.5 py-0.5 rounded text-[10px] font-medium ${curGenre===g?'bg-purple-900 text-purple-300':'text-slate-400'}`;
+        b.textContent = '#' + g;
+        b.onclick = () => { curGenre = (curGenre === g ? 'all' : g); renderGenres(); renderCards(); };
+        gb.appendChild(b);
+      });
+    }
+
+    function renderCards() {
+      const q = document.getElementById('searchInput').value.toLowerCase();
+      const grid = document.getElementById('cardsGrid');
+      grid.innerHTML = '';
+      const list = allItems.filter(i => {
+        return (curFilter === 'all' || i.category === curFilter) &&
+               (curGenre === 'all' || i.genre === curGenre) &&
+               (i.title.toLowerCase().includes(q) || (i.memory && i.memory.toLowerCase().includes(q)));
+      });
+      document.getElementById('emptyState').classList.toggle('hidden', list.length > 0);
+
+      list.forEach(i => {
+        const c = document.createElement('div');
+        c.className = "bg-slate-900 border border-slate-800 rounded-xl overflow-hidden flex flex-col justify-between hover:border-purple-500/40 transition shadow";
+        c.innerHTML = `
+          <div>
+            <div class="h-44 w-full bg-slate-950 relative overflow-hidden">
+              <img src="${i.coverUrl || 'https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?w=500'}" referrerpolicy="no-referrer" class="w-full h-full object-cover">
+              <div class="absolute top-2 right-2 bg-black/70 px-2 py-0.5 rounded text-[10px] text-amber-300 font-bold">★ ${i.rating}</div>
+            </div>
+            <div class="p-3">
+              <h4 class="font-bold text-xs text-white truncate">${i.title}</h4>
+              <p class="text-[10px] text-purple-400 mt-0.5">#${i.genre}</p>
+              ${i.memory ? `<p class="mt-2 text-[11px] text-slate-300 italic line-clamp-2 bg-purple-950/20 p-1.5 rounded border-l-2 border-purple-500">"${i.memory}"</p>` : ''}
+            </div>
+          </div>
+          <div class="p-3 pt-0">
+            ${i.sourceUrl ? `<a href="${i.sourceUrl}" target="_blank" class="block w-full text-center py-1 bg-slate-800 hover:bg-slate-700 text-slate-200 text-[10px] rounded mb-2">Смотреть / Слушать ↗</a>` : ''}
+            <div class="flex justify-between items-center text-[10px] text-slate-500 border-t border-slate-800 pt-1.5">
+              <span>${i.dateAdded}</span>
+              <div class="flex gap-2">
+                <button onclick="openEditModal(${i.id})" class="text-purple-400 hover:underline">Ред.</button>
+                <button onclick="delItem(${i.id})" class="text-rose-400 hover:underline">Удалить</button>
+              </div>
+            </div>
+          </div>
+        `;
+        grid.appendChild(c);
+      });
+    }
+
+    function openAddModal() {
+      editId = null;
+      document.getElementById('modalTitle').textContent = '✨ Добавить в память';
+      document.getElementById('itemForm').reset();
+      document.getElementById('cPrev').innerHTML = '🖼️';
+      document.getElementById('itemModal').classList.remove('hidden');
+    }
+
+    function openEditModal(id) {
+      const it = allItems.find(x => x.id === id);
+      if (!it) return;
+      editId = id;
+      document.getElementById('modalTitle').textContent = '✏️ Редактировать запись';
+      document.getElementById('fTitle').value = it.title || '';
+      document.getElementById('fCategory').value = it.category || 'movie';
+      document.getElementById('fGenre').value = it.genre || '';
+      document.getElementById('fRating').value = it.rating || 10;
+      document.getElementById('fMemory').value = it.memory || '';
+      document.getElementById('fSource').value = it.sourceUrl || '';
+      document.getElementById('fCover').value = it.coverUrl || '';
+      if (it.coverUrl) document.getElementById('cPrev').innerHTML = `<img src="${it.coverUrl}" referrerpolicy="no-referrer" class="w-full h-full object-cover">`;
+      document.getElementById('itemModal').classList.remove('hidden');
+    }
+
+    function closeModal() {
+      document.getElementById('itemModal').classList.add('hidden');
+      document.getElementById('sugBox').classList.add('hidden');
+    }
+
+    async function delItem(id) {
+      if (!confirm('Удалить запись?')) return;
+      const tx = db.transaction('items', 'readwrite');
+      tx.objectStore('items').delete(id);
+      tx.oncomplete = async () => {
+        if (supabaseClient) await supabaseClient.from('items').delete().eq('id', id);
+        loadItems();
+      };
+    }
+
+    function setFilter(cat) {
+      curFilter = cat; curGenre = 'all';
+      document.querySelectorAll('.cat-btn').forEach(b => {
+        b.className = b.dataset.cat === cat ? "cat-btn px-3 py-1 rounded-full text-xs font-medium border bg-purple-600 border-purple-500 text-white" : "cat-btn px-3 py-1 rounded-full text-xs font-medium border border-slate-800 bg-slate-900 text-slate-300";
+      });
+      renderGenres(); renderCards();
+    }
+
+    function exportBackup() {
+      const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(allItems, null, 2));
+      const a = document.createElement('a'); a.href = dataStr; a.download = `backup_${Date.now()}.json`;
+      document.body.appendChild(a); a.click(); a.remove();
+    }
+
+    document.getElementById('searchInput').addEventListener('input', renderCards);
+    document.addEventListener('click', e => {
+      const sb = document.getElementById('sugBox'), inp = document.getElementById('fTitle');
+      if (!sb.contains(e.target) && e.target !== inp) sb.classList.add('hidden');
+    });
+
+    window.addEventListener('DOMContentLoaded', async () => {
+      const targetDb = await initDB();
+      await recoverOld(targetDb);
+      loadItems();
+      if (supabaseClient) { await syncCloud(); loadItems(); }
+    });
+  </script>
+</body>
+</html>
