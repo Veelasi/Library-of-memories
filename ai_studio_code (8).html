@@ -1,0 +1,1230 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Библиотека Всего — Твоя цифровая память</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Supabase JS Client -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              50: '#f5f3ff',
+              500: '#8b5cf6',
+              600: '#7c3aed',
+              900: '#1e1b4b',
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    .line-clamp-2 {
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+  </style>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen font-sans antialiased selection:bg-purple-500 selection:text-white">
+
+  <!-- Встроенные ключи вашего проекта Supabase -->
+  <script>
+    const SB_DEFAULT_URL = 'https://zwlvkxieirgizyyzpyxd.supabase.co';
+    const SB_DEFAULT_KEY = 'sb_publishable_s4c5cypmhF6GXCoWeP3SQA_KnnnZCeC';
+  </script>
+
+  <!-- Навигация -->
+  <header class="sticky top-0 z-40 bg-slate-900/80 backdrop-blur-md border-b border-slate-800">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 py-4 flex flex-col sm:flex-row items-center justify-between gap-4">
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-purple-500 to-indigo-600 flex items-center justify-center shadow-lg shadow-purple-500/20">
+          <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path>
+          </svg>
+        </div>
+        <div>
+          <h1 class="text-xl font-bold tracking-tight bg-gradient-to-r from-purple-400 to-pink-300 bg-clip-text text-transparent">Библиотека Всего</h1>
+          <div class="flex items-center gap-1.5 mt-0.5">
+            <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+            <p class="text-[11px] text-emerald-400 font-medium">Облако Supabase подключено</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="flex items-center gap-2.5 w-full sm:w-auto">
+        <input 
+          id="searchInput" 
+          type="text" 
+          placeholder="Поиск по библиотеке..." 
+          class="w-full sm:w-64 bg-slate-800/80 border border-slate-700 rounded-xl px-4 py-2 text-sm text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-500"
+        />
+        
+        <!-- Кнопка Бэкап -->
+        <button 
+          onclick="openSyncModal()" 
+          title="Резервное копирование" 
+          class="shrink-0 p-2 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-xl text-purple-300 transition flex items-center gap-1.5 text-sm"
+        >
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+          <span class="hidden md:inline text-xs font-medium">Файл бэкапа</span>
+        </button>
+
+        <button 
+          onclick="openAddModal()" 
+          class="shrink-0 bg-purple-600 hover:bg-purple-500 text-white font-medium px-4 py-2 rounded-xl text-sm transition-all duration-200 shadow-lg shadow-purple-600/30 flex items-center gap-2"
+        >
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+          <span>Добавить</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Главный экран -->
+  <main class="max-w-7xl mx-auto px-4 sm:px-6 py-6">
+    <div class="flex flex-wrap items-center gap-2 mb-3">
+      <button onclick="setFilter('all')" class="cat-btn active-filter px-4 py-1.5 rounded-full text-xs sm:text-sm font-medium border transition-colors bg-purple-600 border-purple-500 text-white" data-category="all">Все</button>
+      <button onclick="setFilter('movie')" class="cat-btn px-4 py-1.5 rounded-full text-xs sm:text-sm font-medium border border-slate-800 bg-slate-900 text-slate-300 hover:border-slate-700 transition-colors" data-category="movie">🎬 Фильмы</button>
+      <button onclick="setFilter('series')" class="cat-btn px-4 py-1.5 rounded-full text-xs sm:text-sm font-medium border border-slate-800 bg-slate-900 text-slate-300 hover:border-slate-700 transition-colors" data-category="series">📺 Сериалы</button>
+      <button onclick="setFilter('music')" class="cat-btn px-4 py-1.5 rounded-full text-xs sm:text-sm font-medium border border-slate-800 bg-slate-900 text-slate-300 hover:border-slate-700 transition-colors" data-category="music">🎵 Музыка</button>
+      <button onclick="setFilter('game')" class="cat-btn px-4 py-1.5 rounded-full text-xs sm:text-sm font-medium border border-slate-800 bg-slate-900 text-slate-300 hover:border-slate-700 transition-colors" data-category="game">🎮 Игры</button>
+    </div>
+
+    <!-- Теги жанров -->
+    <div id="genresBar" class="flex flex-wrap items-center gap-1.5 mb-8 min-h-[28px]"></div>
+
+    <!-- Сетка карточек -->
+    <div id="cardsGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"></div>
+
+    <!-- Пустое состояние -->
+    <div id="emptyState" class="hidden text-center py-20">
+      <div class="w-16 h-16 mx-auto mb-4 rounded-2xl bg-slate-800 flex items-center justify-center text-slate-500 text-2xl">📦</div>
+      <h3 class="text-lg font-semibold text-slate-300">Ничего не найдено</h3>
+      <p class="text-sm text-slate-500 max-w-sm mx-auto mt-1">Добавьте своё первое воспоминание в библиотеку.</p>
+    </div>
+  </main>
+
+  <!-- Модальное окно (Добавление / Редактирование) -->
+  <div id="itemModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/85 backdrop-blur-sm hidden p-4 overflow-y-auto">
+    <div class="bg-slate-900 border border-slate-800 w-full max-w-xl rounded-2xl p-6 shadow-2xl relative my-8">
+      <button type="button" onclick="closeModal()" class="absolute top-4 right-4 text-slate-400 hover:text-white">
+        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+      </button>
+      
+      <h2 id="modalTitle" class="text-xl font-bold mb-4 flex items-center gap-2 text-white">
+        <span>✨</span> Добавить в память
+      </h2>
+
+      <form id="itemForm" onsubmit="saveItem(event)" novalidate class="space-y-4">
+        <!-- Поле Название с мультипоиском -->
+        <div class="relative">
+          <label class="block text-xs font-medium text-slate-400 mb-1">Название произведения / Исполнитель *</label>
+          <div class="relative">
+            <input 
+              id="fTitle" 
+              type="text" 
+              autocomplete="off"
+              placeholder="Например: Radiohead, Ведьмак, Queen, Начало..." 
+              class="w-full bg-slate-800 border border-slate-700 rounded-xl px-3.5 py-2.5 text-sm text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
+              oninput="handleTitleInput(this.value)"
+            >
+            <div id="searchSpinner" class="absolute right-3.5 top-3 hidden">
+              <svg class="animate-spin h-4 w-4 text-purple-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
+              </svg>
+            </div>
+          </div>
+
+          <!-- Выпадающий список подсказок -->
+          <div id="suggestionsDropdown" class="absolute left-0 right-0 top-full mt-1.5 bg-slate-900 border border-slate-700 rounded-2xl shadow-2xl overflow-hidden z-50 hidden flex flex-col border border-purple-500/30">
+            <div class="flex items-center gap-1.5 p-2 bg-slate-950 border-b border-slate-800 overflow-x-auto text-xs shrink-0">
+              <button type="button" onclick="setSuggestTab('all')" class="s-tab px-2.5 py-1 rounded-lg bg-purple-600 text-white font-medium transition" data-tab="all">
+                Все <span id="cnt-all" class="text-[10px] opacity-80">(0)</span>
+              </button>
+              <button type="button" onclick="setSuggestTab('music')" class="s-tab px-2.5 py-1 rounded-lg bg-slate-800 text-emerald-300 hover:bg-slate-700 transition" data-tab="music">
+                🎵 Музыка <span id="cnt-music" class="text-[10px] opacity-80">(0)</span>
+              </button>
+              <button type="button" onclick="setSuggestTab('game')" class="s-tab px-2.5 py-1 rounded-lg bg-slate-800 text-amber-300 hover:bg-slate-700 transition" data-tab="game">
+                🎮 Игры <span id="cnt-game" class="text-[10px] opacity-80">(0)</span>
+              </button>
+              <button type="button" onclick="setSuggestTab('movie')" class="s-tab px-2.5 py-1 rounded-lg bg-slate-800 text-rose-300 hover:bg-slate-700 transition" data-tab="movie">
+                🎬 Фильмы <span id="cnt-movie" class="text-[10px] opacity-80">(0)</span>
+              </button>
+              <button type="button" onclick="setSuggestTab('series')" class="s-tab px-2.5 py-1 rounded-lg bg-slate-800 text-sky-300 hover:bg-slate-700 transition" data-tab="series">
+                📺 Сериалы <span id="cnt-series" class="text-[10px] opacity-80">(0)</span>
+              </button>
+            </div>
+            <div id="suggestionsList" class="overflow-y-auto max-h-72 divide-y divide-slate-800/60"></div>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-medium text-slate-400 mb-1">Категория</label>
+            <select id="fCategory" class="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-purple-500" onchange="onCategoryChanged()">
+              <option value="movie">Фильм</option>
+              <option value="series">Сериал</option>
+              <option value="music">Музыка / Альбом</option>
+              <option value="game">Игра</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-xs font-medium text-slate-400 mb-1">Жанр</label>
+            <input id="fGenre" type="text" placeholder="Рок, RPG, Саундтрек..." class="w-full bg-slate-800 border border-slate-700 rounded-xl px-3.5 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-purple-500">
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-xs font-medium text-slate-400 mb-1">Личная оценка (1-10)</label>
+          <input id="fRating" type="number" min="1" max="10" value="10" class="w-full bg-slate-800 border border-slate-700 rounded-xl px-3.5 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-purple-500">
+        </div>
+
+        <div>
+          <label class="block text-xs font-medium text-purple-300 mb-1">💭 Воспоминания / Рецензия</label>
+          <textarea id="fMemory" rows="3" placeholder="С чем ассоциируется? С кем слушали/смотрели/играли? Какие эмоции вызывает..." class="w-full bg-slate-800 border border-purple-900/40 rounded-xl px-3.5 py-2 text-sm text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-purple-500"></textarea>
+        </div>
+
+        <div>
+          <label class="block text-xs font-medium text-slate-400 mb-1">Ссылка на источник (Яндекс.Музыка, Spotify, трекер, облако)</label>
+          <input id="fSourceUrl" type="text" placeholder="https://..." class="w-full bg-slate-800 border border-slate-700 rounded-xl px-3.5 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-purple-500">
+        </div>
+
+        <!-- Обложка -->
+        <div>
+          <div class="flex items-center justify-between mb-1">
+            <label class="block text-xs font-medium text-slate-400">Обложка / Постер</label>
+            <button type="button" onclick="openGoogleImagesSearch()" class="text-[11px] text-purple-400 hover:text-purple-300 underline">
+              Искать в Google Картинках ↗
+            </button>
+          </div>
+          <div class="flex gap-2 items-center">
+            <input id="fCoverUrl" type="text" placeholder="URL обложки подставится автоматически" oninput="updateCoverPreview(this.value)" class="w-full bg-slate-800 border border-slate-700 rounded-xl px-3.5 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-purple-500">
+            <div id="coverPreview" class="w-12 h-12 rounded-xl overflow-hidden bg-slate-800 shrink-0 border border-slate-700 flex items-center justify-center text-sm text-slate-500 shadow-inner">
+              🖼️
+            </div>
+          </div>
+        </div>
+
+        <!-- Локальный файл -->
+        <div class="border-t border-slate-800 pt-3">
+          <label class="block text-xs font-medium text-slate-400 mb-1">📁 Прикрепить личный файл (MP3, FLAC, архив, сейв)</label>
+          <div id="currentFileInfo" class="text-xs text-purple-300 mb-1.5 hidden bg-purple-950/40 px-3 py-1.5 rounded-lg border border-purple-800/40"></div>
+          <input id="fLocalFile" type="file" class="w-full text-xs text-slate-400 file:mr-4 file:py-1.5 file:px-3 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-purple-600 file:text-white hover:file:bg-purple-500 cursor-pointer">
+        </div>
+
+        <div class="flex justify-end gap-2 pt-2">
+          <button type="button" onclick="closeModal()" class="px-4 py-2 rounded-xl text-sm font-medium text-slate-400 hover:text-white hover:bg-slate-800 transition">Отмена</button>
+          <button type="submit" id="btnSubmitForm" class="px-5 py-2 rounded-xl text-sm font-medium bg-purple-600 hover:bg-purple-500 text-white transition shadow-lg shadow-purple-600/30 flex items-center gap-2">
+            <span>Сохранить в облако</span>
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Модальное окно (Бэкап) -->
+  <div id="syncModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/85 backdrop-blur-sm hidden p-4 overflow-y-auto">
+    <div class="bg-slate-900 border border-slate-800 w-full max-w-md rounded-2xl p-6 shadow-2xl relative my-8">
+      <button type="button" onclick="closeSyncModal()" class="absolute top-4 right-4 text-slate-400 hover:text-white">
+        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+      </button>
+
+      <h2 class="text-xl font-bold mb-2 flex items-center gap-2 text-white">
+        <span>💾</span> Резервное копирование
+      </h2>
+      <p class="text-xs text-slate-400 mb-5">Облако Supabase уже автоматически сохраняет каждую вашу запись. Здесь вы можете дополнительно скачать файл со всей библиотекой.</p>
+
+      <div class="bg-slate-950 p-4 rounded-xl border border-slate-800 space-y-3">
+        <div class="flex flex-col gap-2 pt-1">
+          <button type="button" onclick="exportBackup()" class="w-full py-2.5 bg-purple-600 hover:bg-purple-500 text-white rounded-xl text-xs font-semibold transition flex items-center justify-center gap-2">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+            Скачать файл бэкапа (JSON)
+          </button>
+          <label class="w-full py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 rounded-xl text-xs font-semibold transition cursor-pointer flex items-center justify-center gap-2">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l4-4m0 0l4 4m-4-4v12"/></svg>
+            Восстановить из файла
+            <input type="file" accept=".json" onchange="importBackup(event)" class="hidden">
+          </label>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // --- АВТОМАТИЧЕСКАЯ ИНИЦИАЛИЗАЦИЯ SUPABASE ---
+    let supabaseClient = null;
+
+    try {
+      if (window.supabase) {
+        supabaseClient = window.supabase.createClient(SB_DEFAULT_URL, SB_DEFAULT_KEY);
+      }
+    } catch (e) {
+      console.error('Ошибка инициализации Supabase:', e);
+    }
+
+    function openSyncModal() {
+      document.getElementById('syncModal').classList.remove('hidden');
+    }
+
+    function closeSyncModal() {
+      document.getElementById('syncModal').classList.add('hidden');
+    }
+
+    // Двусторонняя синхронизация с облаком
+    async function syncWithCloud() {
+      if (!supabaseClient) return;
+
+      try {
+        const { data: cloudItems, error } = await supabaseClient.from('items').select('*');
+        if (error) {
+          console.warn('Таблица items ещё не создана в Supabase:', error.message);
+          return;
+        }
+
+        const db = await initDB();
+
+        if (cloudItems && cloudItems.length > 0) {
+          for (const it of cloudItems) {
+            const formatted = {
+              id: it.id,
+              title: it.title,
+              category: it.category,
+              genre: it.genre,
+              rating: it.rating,
+              memory: it.memory,
+              sourceUrl: it.source_url,
+              coverUrl: it.cover_url,
+              fileName: it.file_name,
+              dateAdded: it.date_added
+            };
+            await new Promise((res) => {
+              const tx = db.transaction('items', 'readwrite');
+              tx.objectStore('items').put(formatted);
+              tx.oncomplete = () => res();
+            });
+          }
+        }
+
+        const tx = db.transaction('items', 'readonly');
+        const localItems = await new Promise(res => {
+          const r = tx.objectStore('items').getAll();
+          r.onsuccess = () => res(r.result || []);
+        });
+
+        for (const it of localItems) {
+          const payload = {
+            id: it.id,
+            title: it.title,
+            category: it.category,
+            genre: it.genre,
+            rating: it.rating,
+            memory: it.memory,
+            source_url: it.sourceUrl,
+            cover_url: it.coverUrl,
+            file_name: it.fileName,
+            date_added: it.dateAdded
+          };
+          await supabaseClient.from('items').upsert(payload);
+        }
+      } catch (err) {
+        console.error('Ошибка синхронизации:', err);
+      }
+    }
+
+    // Экспорт в JSON
+    async function exportBackup() {
+      const db = await initDB();
+      const tx = db.transaction('items', 'readonly');
+      const store = tx.objectStore('items');
+      const req = store.getAll();
+
+      req.onsuccess = () => {
+        const itemsToSave = (req.result || []).map(it => {
+          const clone = { ...it };
+          delete clone.fileBlob;
+          return clone;
+        });
+
+        const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(itemsToSave, null, 2));
+        const a = document.createElement('a');
+        a.setAttribute("href", dataStr);
+        a.setAttribute("download", `library_backup_${new Date().toISOString().slice(0,10)}.json`);
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+      };
+    }
+
+    // Импорт из JSON
+    function importBackup(e) {
+      const file = e.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = async (ev) => {
+        try {
+          const items = JSON.parse(ev.target.result);
+          if (!Array.isArray(items)) throw new Error('Неверный формат файла');
+
+          const db = await initDB();
+          for (const item of items) {
+            item.id = Date.now() + Math.floor(Math.random() * 1000);
+            await new Promise(res => {
+              const tx = db.transaction('items', 'readwrite');
+              tx.objectStore('items').add(item);
+              tx.oncomplete = () => res();
+            });
+          }
+
+          alert(`Успешно восстановлено ${items.length} записей!`);
+          closeSyncModal();
+          loadItems();
+          if (supabaseClient) syncWithCloud();
+        } catch (err) {
+          alert('Ошибка импорта: ' + err.message);
+        }
+      };
+      reader.readAsText(file);
+    }
+
+    // --- JSONP ДЛЯ ОБХОДА CORS НА ТЕЛЕФОНЕ ---
+    function fetchJsonp(url, timeout = 4000) {
+      return new Promise((resolve) => {
+        const cbName = 'jp_cb_' + Math.random().toString(36).substring(2, 9) + '_' + Date.now();
+        const script = document.createElement('script');
+        let done = false;
+
+        const cleanup = () => {
+          if (done) return;
+          done = true;
+          try { delete window[cbName]; } catch (e) { window[cbName] = undefined; }
+          if (script.parentNode) script.parentNode.removeChild(script);
+        };
+
+        window[cbName] = (data) => {
+          cleanup();
+          resolve(data);
+        };
+
+        script.onerror = () => {
+          cleanup();
+          resolve(null);
+        };
+
+        const sep = url.includes('?') ? '&' : '?';
+        script.src = `${url}${sep}callback=${cbName}`;
+        document.body.appendChild(script);
+
+        setTimeout(() => {
+          cleanup();
+          resolve(null);
+        }, timeout);
+      });
+    }
+
+    // --- ПЕРЕВОД ЖАНРОВ ---
+    const GENRE_MAP = {
+      'action': 'Боевик', 'adventure': 'Приключения', 'comedy': 'Комедия', 'drama': 'Драма',
+      'sci-fi & fantasy': 'Фантастика', 'science-fiction': 'Фантастика', 'fantasy': 'Фэнтези',
+      'horror': 'Ужасы', 'thriller': 'Триллер', 'crime': 'Криминал', 'animation': 'Мультфильм',
+      'anime': 'Аниме', 'documentary': 'Документальный',
+      'rock': 'Рок', 'hard rock': 'Хард-рок', 'pop': 'Поп-музыка', 'hip-hop': 'Хип-хоп',
+      'hip-hop/rap': 'Хип-хоп / Рэп', 'rap': 'Рэп', 'electronic': 'Электроника',
+      'dance': 'Танцевальная', 'ambient': 'Эмбиент', 'soundtrack': 'Саундтрек',
+      'classical': 'Классика', 'metal': 'Метал', 'heavy metal': 'Хеви-метал',
+      'alternative': 'Альтернатива', 'indie rock': 'Инди-рок', 'punk': 'Панк-рок',
+      'rpg': 'Ролевая игра (RPG)', 'shooter': 'Шутер', 'strategy': 'Стратегия',
+      'indie': 'Инди', 'survival horror': 'Выживание / Хоррор', 'racing': 'Гонки'
+    };
+
+    function translateGenre(raw) {
+      if (!raw) return 'Разное';
+      const clean = String(raw).toLowerCase().trim();
+      return GENRE_MAP[clean] || raw;
+    }
+
+    function normalizeUrl(url) {
+      if (!url) return '';
+      url = url.trim();
+      if (!url) return '';
+      if (!/^https?:\/\//i.test(url)) return 'https://' + url;
+      return url;
+    }
+
+    // --- БАЗА ДАННЫХ INDEXEDDB ---
+    let dbInstance = null;
+    function initDB() {
+      return new Promise((resolve, reject) => {
+        if (dbInstance) return resolve(dbInstance);
+        const req = indexedDB.open('LibraryOfEverything_V8', 1);
+        req.onupgradeneeded = (e) => {
+          const db = e.target.result;
+          if (!db.objectStoreNames.contains('items')) {
+            db.createObjectStore('items', { keyPath: 'id' });
+          }
+        };
+        req.onsuccess = (e) => {
+          dbInstance = e.target.result;
+          resolve(dbInstance);
+        };
+        req.onerror = (e) => reject(e.target.error);
+      });
+    }
+
+    let allItems = [];
+    let currentFilter = 'all';
+    let currentGenreFilter = 'all';
+    let editingItemId = null;
+    let debounceTimer = null;
+    let cachedSuggestions = [];
+    let activeSuggestTab = 'all';
+
+    function openAddModal() {
+      editingItemId = null;
+      document.getElementById('modalTitle').innerHTML = '<span>✨</span> Добавить в память';
+      document.getElementById('btnSubmitForm').querySelector('span').textContent = 'Сохранить в облако';
+      document.getElementById('currentFileInfo').classList.add('hidden');
+      document.getElementById('itemForm').reset();
+      document.getElementById('coverPreview').innerHTML = '🖼️';
+      document.getElementById('suggestionsDropdown').classList.add('hidden');
+      document.getElementById('itemModal').classList.remove('hidden');
+      
+      activeSuggestTab = document.getElementById('fCategory').value || 'all';
+      setTimeout(() => document.getElementById('fTitle').focus(), 50);
+    }
+
+    function openEditModal(id) {
+      const item = allItems.find(it => it.id === id);
+      if (!item) return;
+
+      editingItemId = id;
+      document.getElementById('modalTitle').innerHTML = '<span>✏️</span> Редактировать запись';
+      document.getElementById('btnSubmitForm').querySelector('span').textContent = 'Сохранить изменения';
+
+      document.getElementById('fTitle').value = item.title || '';
+      document.getElementById('fCategory').value = item.category || 'movie';
+      document.getElementById('fGenre').value = item.genre || '';
+      document.getElementById('fRating').value = item.rating || 10;
+      document.getElementById('fMemory').value = item.memory || '';
+      document.getElementById('fSourceUrl').value = item.sourceUrl || '';
+      document.getElementById('fCoverUrl').value = item.coverUrl || '';
+
+      const fileInfo = document.getElementById('currentFileInfo');
+      if (item.fileName) {
+        fileInfo.textContent = `Прикреплен файл: "${item.fileName}". Выберите новый, если хотите его заменить.`;
+        fileInfo.classList.remove('hidden');
+      } else {
+        fileInfo.classList.add('hidden');
+      }
+
+      updateCoverPreview(item.coverUrl);
+      document.getElementById('suggestionsDropdown').classList.add('hidden');
+      document.getElementById('itemModal').classList.remove('hidden');
+    }
+
+    function closeModal() {
+      document.getElementById('itemModal').classList.add('hidden');
+      document.getElementById('itemForm').reset();
+      document.getElementById('suggestionsDropdown').classList.add('hidden');
+      document.getElementById('coverPreview').innerHTML = '🖼️';
+      editingItemId = null;
+    }
+
+    function updateCoverPreview(url) {
+      const box = document.getElementById('coverPreview');
+      if (url && url.trim().length > 5) {
+        box.innerHTML = `<img src="${url.trim()}" class="w-full h-full object-cover" onerror="this.parentElement.innerHTML='🖼️'">`;
+      } else {
+        box.innerHTML = '🖼️';
+      }
+    }
+
+    function onCategoryChanged() {
+      const cat = document.getElementById('fCategory').value;
+      setSuggestTab(cat);
+    }
+
+    // --- ПОИСК С ОБХОДОМ CORS ---
+    function handleTitleInput(val) {
+      clearTimeout(debounceTimer);
+      const query = val.trim();
+      const dropdown = document.getElementById('suggestionsDropdown');
+      const spinner = document.getElementById('searchSpinner');
+
+      if (query.length < 2) {
+        dropdown.classList.add('hidden');
+        return;
+      }
+
+      spinner.classList.remove('hidden');
+      debounceTimer = setTimeout(() => {
+        performRobustSearch(query);
+      }, 250);
+    }
+
+    async function performRobustSearch(query) {
+      const spinner = document.getElementById('searchSpinner');
+      const results = [];
+
+      try {
+        const hasCyrillic = /[\u0400-\u04FF]/.test(query);
+        const itunesCountry = hasCyrillic ? '&country=RU' : '';
+
+        // 1. МУЗЫКА ЧЕРЕЗ JSONP
+        const searchMusic = async () => {
+          const itunesSongsUrl = `https://itunes.apple.com/search?term=${encodeURIComponent(query)}&media=music&entity=song&limit=8${itunesCountry}`;
+          const itunesAlbumsUrl = `https://itunes.apple.com/search?term=${encodeURIComponent(query)}&media=music&entity=album&limit=6${itunesCountry}`;
+          const deezerUrl = `https://api.deezer.com/search?q=${encodeURIComponent(query)}&limit=8&output=jsonp`;
+
+          const [songsData, albumsData, deezerData] = await Promise.all([
+            fetchJsonp(itunesSongsUrl),
+            fetchJsonp(itunesAlbumsUrl),
+            fetchJsonp(deezerUrl)
+          ]);
+
+          if (songsData && songsData.results) {
+            songsData.results.forEach(it => {
+              const cover = (it.artworkUrl100 || '').replace('100x100bb', '800x800bb');
+              const year = it.releaseDate ? it.releaseDate.slice(0, 4) : '';
+              results.push({
+                fullTitle: `${it.artistName} — ${it.trackName}`,
+                artist: it.artistName,
+                itemTitle: it.trackName,
+                extraInfo: it.collectionName ? `Альбом: ${it.collectionName}` : 'Сингл',
+                category: 'music',
+                musicType: 'song',
+                genre: translateGenre(it.primaryGenreName),
+                cover: cover,
+                year: year
+              });
+            });
+          }
+
+          if (albumsData && albumsData.results) {
+            albumsData.results.forEach(it => {
+              const cover = (it.artworkUrl100 || '').replace('100x100bb', '800x800bb');
+              const year = it.releaseDate ? it.releaseDate.slice(0, 4) : '';
+              results.push({
+                fullTitle: `${it.artistName} — ${it.collectionName}`,
+                artist: it.artistName,
+                itemTitle: it.collectionName,
+                extraInfo: `Альбом • ${it.trackCount || ''} треков`,
+                category: 'music',
+                musicType: 'album',
+                genre: translateGenre(it.primaryGenreName),
+                cover: cover,
+                year: year
+              });
+            });
+          }
+
+          if (deezerData && deezerData.data) {
+            deezerData.data.forEach(it => {
+              const artist = it.artist ? it.artist.name : '';
+              const track = it.title || '';
+              const album = it.album ? it.album.title : '';
+              const cover = it.album ? (it.album.cover_xl || it.album.cover_big || it.album.cover_medium) : '';
+              results.push({
+                fullTitle: `${artist} — ${track}`,
+                artist: artist,
+                itemTitle: track,
+                extraInfo: album ? `Альбом: ${album}` : 'Сингл',
+                category: 'music',
+                musicType: 'song',
+                genre: 'Музыка',
+                cover: cover,
+                year: ''
+              });
+            });
+          }
+        };
+
+        // 2. ИГРЫ
+        const searchGames = async () => {
+          const ruPrefixUrl = `https://ru.wikipedia.org/w/api.php?action=query&generator=prefixsearch&gpssearch=${encodeURIComponent(query)}&gpslimit=6&prop=pageimages|description&pithumbsize=600&format=json&origin=*`;
+          const ruSearchUrl = `https://ru.wikipedia.org/w/api.php?action=query&generator=search&gsrsearch=${encodeURIComponent(query + ' (игра OR видеоигра)')}&gsrlimit=6&prop=pageimages|description|extracts&exintro=1&explaintext=1&exsentences=1&pithumbsize=600&format=json&origin=*`;
+          const enPrefixUrl = `https://en.wikipedia.org/w/api.php?action=query&generator=prefixsearch&gpssearch=${encodeURIComponent(query)}&gpslimit=5&prop=pageimages|description&pithumbsize=600&format=json&origin=*`;
+
+          const [ruPrefix, ruSearch, enPrefix] = await Promise.all([
+            fetch(ruPrefixUrl).then(r => r.json()).catch(() => null),
+            fetch(ruSearchUrl).then(r => r.json()).catch(() => null),
+            fetch(enPrefixUrl).then(r => r.json()).catch(() => null)
+          ]);
+
+          const parseGames = (pages) => {
+            if (!pages) return;
+            Object.values(pages).forEach(page => {
+              const text = ((page.description || '') + ' ' + (page.extract || '')).toLowerCase();
+              const isGame = text.includes('игр') || text.includes('game') || text.includes('разработ') || text.includes('playstation') || text.includes('steam');
+              if (!isGame && !page.title.toLowerCase().includes('игра')) return;
+
+              let genre = 'Видеоигра';
+              if (text.includes('ролев') || text.includes('rpg')) genre = 'Ролевая игра (RPG)';
+              else if (text.includes('шутер') || text.includes('shooter')) genre = 'Шутер';
+              else if (text.includes('стратег') || text.includes('strategy')) genre = 'Стратегия';
+              else if (text.includes('хоррор') || text.includes('survival')) genre = 'Хоррор';
+
+              const cleanTitle = page.title.replace(/\s*\((компьютерная\s+)?игра.*?\)/i, '').replace(/\s*\(video\s+game.*?\)/i, '').trim();
+
+              results.push({
+                fullTitle: cleanTitle,
+                category: 'game',
+                genre: genre,
+                cover: page.thumbnail ? page.thumbnail.source : '',
+                year: ''
+              });
+            });
+          };
+
+          if (ruPrefix && ruPrefix.query) parseGames(ruPrefix.query.pages);
+          if (ruSearch && ruSearch.query) parseGames(ruSearch.query.pages);
+          if (enPrefix && enPrefix.query) parseGames(enPrefix.query.pages);
+        };
+
+        // 3. СЕРИАЛЫ
+        const searchSeries = async () => {
+          const tvUrl = `https://api.tvmaze.com/search/shows?q=${encodeURIComponent(query)}`;
+          const tvData = await fetch(tvUrl).then(r => r.json()).catch(() => null);
+
+          if (tvData && Array.isArray(tvData)) {
+            tvData.slice(0, 5).forEach(item => {
+              const show = item.show;
+              if (!show) return;
+              results.push({
+                fullTitle: show.name,
+                category: 'series',
+                genre: show.genres && show.genres[0] ? translateGenre(show.genres[0]) : 'Сериал',
+                cover: show.image ? (show.image.original || show.image.medium) : '',
+                year: show.premiered ? show.premiered.slice(0, 4) : ''
+              });
+            });
+          }
+        };
+
+        // 4. ФИЛЬМЫ
+        const searchMovies = async () => {
+          const itunesMovieUrl = `https://itunes.apple.com/search?term=${encodeURIComponent(query)}&media=movie&limit=6${itunesCountry}`;
+          const movieData = await fetchJsonp(itunesMovieUrl);
+
+          if (movieData && movieData.results) {
+            movieData.results.forEach(it => {
+              results.push({
+                fullTitle: it.trackName,
+                category: 'movie',
+                genre: translateGenre(it.primaryGenreName),
+                cover: (it.artworkUrl100 || '').replace('100x100bb', '800x800bb'),
+                year: it.releaseDate ? it.releaseDate.slice(0, 4) : ''
+              });
+            });
+          }
+        };
+
+        await Promise.all([searchMusic(), searchGames(), searchSeries(), searchMovies()]);
+
+        const seen = new Set();
+        cachedSuggestions = results.filter(item => {
+          const key = (item.fullTitle + '|' + item.category).toLowerCase();
+          return seen.has(key) ? false : seen.add(key);
+        });
+
+        renderSuggestions();
+      } catch (err) {
+        console.warn('Ошибка поиска:', err);
+      } finally {
+        spinner.classList.add('hidden');
+      }
+    }
+
+    function setSuggestTab(tab) {
+      activeSuggestTab = tab;
+      document.querySelectorAll('.s-tab').forEach(b => {
+        if (b.dataset.tab === tab) {
+          b.className = "s-tab px-2.5 py-1 rounded-lg bg-purple-600 text-white font-medium transition shadow";
+        } else {
+          b.className = "s-tab px-2.5 py-1 rounded-lg bg-slate-800 text-slate-300 hover:text-white transition";
+        }
+      });
+      renderSuggestionsListOnly();
+    }
+
+    function renderSuggestions() {
+      const counts = {
+        all: cachedSuggestions.length,
+        music: cachedSuggestions.filter(it => it.category === 'music').length,
+        game: cachedSuggestions.filter(it => it.category === 'game').length,
+        movie: cachedSuggestions.filter(it => it.category === 'movie').length,
+        series: cachedSuggestions.filter(it => it.category === 'series').length
+      };
+
+      document.getElementById('cnt-all').textContent = `(${counts.all})`;
+      document.getElementById('cnt-music').textContent = `(${counts.music})`;
+      document.getElementById('cnt-game').textContent = `(${counts.game})`;
+      document.getElementById('cnt-movie').textContent = `(${counts.movie})`;
+      document.getElementById('cnt-series').textContent = `(${counts.series})`;
+
+      const selectedCategory = document.getElementById('fCategory').value;
+      if (counts[selectedCategory] > 0 && activeSuggestTab === 'all') {
+        setSuggestTab(selectedCategory);
+        return;
+      }
+
+      renderSuggestionsListOnly();
+    }
+
+    function renderSuggestionsListOnly() {
+      const dropdown = document.getElementById('suggestionsDropdown');
+      const list = document.getElementById('suggestionsList');
+      list.innerHTML = '';
+
+      const filtered = cachedSuggestions.filter(it => activeSuggestTab === 'all' || it.category === activeSuggestTab);
+
+      if (filtered.length === 0) {
+        list.innerHTML = `
+          <div class="p-6 text-center text-xs text-slate-400">
+            <p>В этой категории ничего не найдено.</p>
+            <button type="button" onclick="setSuggestTab('all')" class="mt-2 text-purple-400 underline font-medium">Показать все найденные (${cachedSuggestions.length})</button>
+          </div>
+        `;
+        dropdown.classList.remove('hidden');
+        return;
+      }
+
+      const catBadges = {
+        movie: { text: '🎬 Фильм', border: 'border-rose-500/40 text-rose-300 bg-rose-950/40' },
+        series: { text: '📺 Сериал', border: 'border-sky-500/40 text-sky-300 bg-sky-950/40' },
+        music: { text: '🎵 Музыка', border: 'border-emerald-500/40 text-emerald-300 bg-emerald-950/40' },
+        game: { text: '🎮 Игра', border: 'border-amber-500/40 text-amber-300 bg-amber-950/40' }
+      };
+
+      filtered.forEach(item => {
+        const badge = catBadges[item.category] || { text: 'Медиа', border: 'border-purple-500/40 text-purple-300 bg-purple-950/40' };
+        const row = document.createElement('div');
+        row.className = "flex items-center gap-3.5 p-3 hover:bg-slate-800/90 cursor-pointer transition group";
+
+        let musicBadge = '';
+        if (item.category === 'music') {
+          if (item.musicType === 'song') {
+            musicBadge = `<span class="text-[10px] bg-emerald-950 text-emerald-400 border border-emerald-800/60 px-1.5 py-0.5 rounded font-medium">🎵 Трек</span>`;
+          } else {
+            musicBadge = `<span class="text-[10px] bg-purple-950 text-purple-300 border border-purple-800/60 px-1.5 py-0.5 rounded font-medium">💿 Альбом</span>`;
+          }
+        }
+
+        row.innerHTML = `
+          <div class="w-12 h-14 bg-slate-950 rounded-lg overflow-hidden shrink-0 flex items-center justify-center text-sm text-slate-600 border border-slate-700/60 shadow-sm relative">
+            ${item.cover ? `<img src="${item.cover}" class="w-full h-full object-cover group-hover:scale-105 transition duration-300" onerror="this.parentElement.innerHTML='🖼️'">` : '🖼️'}
+          </div>
+          <div class="flex-1 min-w-0">
+            <div class="flex items-center gap-2">
+              <span class="text-[11px] font-semibold px-2 py-0.5 rounded-full border ${badge.border}">${badge.text}</span>
+              ${musicBadge}
+              ${item.year ? `<span class="text-xs text-slate-400 font-medium">(${item.year})</span>` : ''}
+            </div>
+            
+            <div class="text-sm font-semibold text-white truncate mt-1 group-hover:text-purple-300 transition-colors">
+              ${item.artist ? `<span class="text-purple-300 font-bold">${escapeHtml(item.artist)}</span> — ${escapeHtml(item.itemTitle)}` : escapeHtml(item.fullTitle)}
+            </div>
+
+            <div class="flex items-center gap-2 mt-1">
+              <span class="text-[11px] text-slate-400 bg-slate-800 px-2 py-0.5 rounded-md border border-slate-700/50">${escapeHtml(item.genre)}</span>
+              ${item.extraInfo ? `<span class="text-[11px] text-slate-400 italic truncate">${escapeHtml(item.extraInfo)}</span>` : ''}
+            </div>
+          </div>
+        `;
+
+        row.onclick = () => selectSuggestion(item);
+        list.appendChild(row);
+      });
+
+      dropdown.classList.remove('hidden');
+    }
+
+    function selectSuggestion(item) {
+      document.getElementById('fTitle').value = item.fullTitle;
+      document.getElementById('fCategory').value = item.category;
+      document.getElementById('fGenre').value = item.genre;
+      
+      if (item.cover) {
+        document.getElementById('fCoverUrl').value = item.cover;
+        updateCoverPreview(item.cover);
+      }
+
+      document.getElementById('suggestionsDropdown').classList.add('hidden');
+    }
+
+    document.addEventListener('click', (e) => {
+      const dropdown = document.getElementById('suggestionsDropdown');
+      const input = document.getElementById('fTitle');
+      if (!dropdown.contains(e.target) && e.target !== input) {
+        dropdown.classList.add('hidden');
+      }
+    });
+
+    function openGoogleImagesSearch() {
+      const title = document.getElementById('fTitle').value.trim();
+      const genre = document.getElementById('fGenre').value.trim();
+      const cat = document.getElementById('fCategory').value;
+      const catNames = { movie: 'фильм постер', series: 'сериал постер', music: 'обложка альбома', game: 'игра обложка' };
+      const q = encodeURIComponent(`${title} ${genre} ${catNames[cat] || ''}`);
+      window.open(`https://www.google.com/search?tbm=isch&q=${q}`, '_blank');
+    }
+
+    // --- СОХРАНЕНИЕ / РЕДАКТИРОВАНИЕ В SUPABASE + INDEXEDDB ---
+    async function saveItem(e) {
+      if (e) e.preventDefault();
+
+      const btn = document.getElementById('btnSubmitForm');
+      const originalText = btn.innerHTML;
+
+      try {
+        const titleInput = document.getElementById('fTitle');
+        const title = titleInput.value.trim();
+
+        if (!title) {
+          alert('Пожалуйста, укажите название!');
+          titleInput.focus();
+          return;
+        }
+
+        btn.disabled = true;
+        btn.innerHTML = `<span>Сохраняем...</span>`;
+
+        const category = document.getElementById('fCategory').value;
+        const genre = document.getElementById('fGenre').value.trim() || 'Разное';
+        const rating = document.getElementById('fRating').value || 10;
+        const memory = document.getElementById('fMemory').value.trim();
+        const sourceUrl = normalizeUrl(document.getElementById('fSourceUrl').value);
+        const coverUrl = normalizeUrl(document.getElementById('fCoverUrl').value);
+        const fileInput = document.getElementById('fLocalFile');
+
+        const db = await initDB();
+
+        if (editingItemId) {
+          await new Promise((resolve, reject) => {
+            const tx = db.transaction('items', 'readwrite');
+            const store = tx.objectStore('items');
+            const getReq = store.get(editingItemId);
+
+            getReq.onsuccess = async () => {
+              const item = getReq.result;
+              if (!item) return reject(new Error('Запись не найдена'));
+
+              item.title = title;
+              item.category = category;
+              item.genre = genre;
+              item.rating = Number(rating);
+              item.memory = memory;
+              item.sourceUrl = sourceUrl;
+              item.coverUrl = coverUrl || item.coverUrl || getDefaultCover(category);
+
+              if (fileInput.files && fileInput.files.length > 0) {
+                item.fileBlob = fileInput.files[0];
+                item.fileName = fileInput.files[0].name;
+              }
+
+              const updateReq = store.put(item);
+              updateReq.onsuccess = async () => {
+                if (supabaseClient) {
+                  await supabaseClient.from('items').upsert({
+                    id: item.id,
+                    title: item.title,
+                    category: item.category,
+                    genre: item.genre,
+                    rating: item.rating,
+                    memory: item.memory,
+                    source_url: item.sourceUrl,
+                    cover_url: item.coverUrl,
+                    file_name: item.fileName,
+                    date_added: item.dateAdded
+                  });
+                }
+                resolve();
+              };
+              updateReq.onerror = () => reject(updateReq.error);
+            };
+
+            getReq.onerror = () => reject(getReq.error);
+          });
+        } else {
+          let fileBlob = null;
+          let fileName = '';
+
+          if (fileInput.files && fileInput.files.length > 0) {
+            fileBlob = fileInput.files[0];
+            fileName = fileInput.files[0].name;
+          }
+
+          const newId = Date.now();
+          const newItem = {
+            id: newId,
+            title,
+            category,
+            genre,
+            rating: Number(rating),
+            memory,
+            sourceUrl,
+            coverUrl: coverUrl || getDefaultCover(category),
+            fileName,
+            fileBlob,
+            dateAdded: new Date().toLocaleDateString('ru-RU')
+          };
+
+          await new Promise((resolve, reject) => {
+            const tx = db.transaction('items', 'readwrite');
+            const store = tx.objectStore('items');
+            const req = store.add(newItem);
+            req.onsuccess = async () => {
+              if (supabaseClient) {
+                await supabaseClient.from('items').insert({
+                  id: newId,
+                  title: newItem.title,
+                  category: newItem.category,
+                  genre: newItem.genre,
+                  rating: newItem.rating,
+                  memory: newItem.memory,
+                  source_url: newItem.sourceUrl,
+                  cover_url: newItem.coverUrl,
+                  file_name: newItem.fileName,
+                  date_added: newItem.dateAdded
+                });
+              }
+              resolve();
+            };
+            req.onerror = () => reject(req.error);
+          });
+        }
+
+        closeModal();
+        await loadItems();
+      } catch (err) {
+        console.error('Ошибка сохранения:', err);
+        alert('Не удалось сохранить: ' + (err.message || err));
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = originalText;
+      }
+    }
+
+    // --- ЗАГРУЗКА И ВЫВОД КАРТОЧЕК ---
+    async function loadItems() {
+      try {
+        const db = await initDB();
+        const tx = db.transaction('items', 'readonly');
+        const store = tx.objectStore('items');
+        const getReq = store.getAll();
+
+        getReq.onsuccess = () => {
+          allItems = (getReq.result || []).reverse();
+          renderGenreBar();
+          renderCards();
+        };
+      } catch (err) {
+        console.error('Ошибка загрузки данных:', err);
+      }
+    }
+
+    function renderGenreBar() {
+      const genresBar = document.getElementById('genresBar');
+      genresBar.innerHTML = '';
+
+      const currentCategoryItems = allItems.filter(it => currentFilter === 'all' || it.category === currentFilter);
+      const uniqueGenres = [...new Set(currentCategoryItems.map(it => it.genre).filter(Boolean))];
+
+      if (uniqueGenres.length === 0) return;
+
+      const allBtn = document.createElement('button');
+      allBtn.className = `px-3 py-1 rounded-lg text-xs font-medium transition ${currentGenreFilter === 'all' ? 'bg-purple-900/60 text-purple-300 border border-purple-500/50' : 'text-slate-400 hover:text-slate-200'}`;
+      allBtn.textContent = 'Все жанры';
+      allBtn.onclick = () => { currentGenreFilter = 'all'; renderGenreBar(); renderCards(); };
+      genresBar.appendChild(allBtn);
+
+      uniqueGenres.forEach(g => {
+        const btn = document.createElement('button');
+        const isActive = currentGenreFilter === g;
+        btn.className = `px-3 py-1 rounded-lg text-xs font-medium transition ${isActive ? 'bg-purple-900/60 text-purple-300 border border-purple-500/50' : 'text-slate-400 hover:text-slate-200'}`;
+        btn.textContent = `#${g}`;
+        btn.onclick = () => {
+          currentGenreFilter = isActive ? 'all' : g;
+          renderGenreBar();
+          renderCards();
+        };
+        genresBar.appendChild(btn);
+      });
+    }
+
+    function renderCards() {
+      const query = document.getElementById('searchInput').value.toLowerCase();
+      const grid = document.getElementById('cardsGrid');
+      const empty = document.getElementById('emptyState');
+
+      const filtered = allItems.filter(item => {
+        const matchesCategory = currentFilter === 'all' || item.category === currentFilter;
+        const matchesGenre = currentGenreFilter === 'all' || item.genre === currentGenreFilter;
+        const matchesSearch = (item.title && item.title.toLowerCase().includes(query)) || 
+                              (item.genre && item.genre.toLowerCase().includes(query)) ||
+                              (item.memory && item.memory.toLowerCase().includes(query));
+        return matchesCategory && matchesGenre && matchesSearch;
+      });
+
+      grid.innerHTML = '';
+
+      if (filtered.length === 0) {
+        empty.classList.remove('hidden');
+      } else {
+        empty.classList.add('hidden');
+        filtered.forEach(item => {
+          grid.appendChild(createCardElement(item));
+        });
+      }
+    }
+
+    function createCardElement(item) {
+      const card = document.createElement('div');
+      card.className = "bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden flex flex-col justify-between hover:border-purple-500/50 transition-all duration-300 group shadow-md hover:shadow-xl hover:shadow-purple-900/10";
+
+      const catBadges = {
+        movie: { text: '🎬 Фильм', class: 'bg-rose-500/10 text-rose-400 border-rose-500/30' },
+        series: { text: '📺 Сериал', class: 'bg-sky-500/10 text-sky-400 border-sky-500/30' },
+        music: { text: '🎵 Музыка', class: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30' },
+        game: { text: '🎮 Игра', class: 'bg-amber-500/10 text-amber-400 border-amber-500/30' },
+      };
+
+      const badge = catBadges[item.category] || { text: 'Медиа', class: 'bg-slate-500/10 text-slate-400' };
+
+      let downloadAttachedBtn = '';
+      if (item.fileBlob) {
+        const fileUrl = URL.createObjectURL(item.fileBlob);
+        downloadAttachedBtn = `
+          <a href="${fileUrl}" download="${item.fileName}" class="text-xs flex items-center gap-1.5 text-purple-400 hover:text-purple-300 bg-purple-950/50 border border-purple-800/60 px-3 py-1.5 rounded-lg transition mt-2">
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+            Скачать файл: ${escapeHtml(item.fileName)}
+          </a>
+        `;
+      }
+
+      let sourceBtn = '';
+      if (item.sourceUrl) {
+        sourceBtn = `
+          <a href="${item.sourceUrl}" target="_blank" rel="noopener noreferrer" class="text-xs flex items-center justify-center gap-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 font-medium px-3 py-2 rounded-xl transition w-full">
+            <span>Источник / Слушать</span>
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
+          </a>
+        `;
+      }
+
+      card.innerHTML = `
+        <div>
+          <div class="h-48 w-full relative overflow-hidden bg-slate-950">
+            <img src="${item.coverUrl}" alt="${escapeHtml(item.title)}" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300 opacity-90" onerror="this.src='${getDefaultCover(item.category)}'"/>
+            <div class="absolute inset-0 bg-gradient-to-t from-slate-900 via-transparent to-transparent"></div>
+            <div class="absolute top-3 left-3 flex flex-wrap gap-1.5">
+              <span class="text-[11px] font-semibold border px-2.5 py-0.5 rounded-full backdrop-blur-md ${badge.class}">
+                ${badge.text}
+              </span>
+            </div>
+            <div class="absolute top-3 right-3 bg-black/60 backdrop-blur-md px-2 py-0.5 rounded-lg border border-white/10 text-xs font-bold text-amber-300">
+              ★ ${item.rating}/10
+            </div>
+          </div>
+
+          <div class="p-4">
+            <h4 class="font-bold text-base text-slate-100 group-hover:text-purple-300 transition-colors">${escapeHtml(item.title)}</h4>
+            
+            ${item.genre ? `
+              <div class="mt-1">
+                <span class="text-[11px] bg-slate-800 text-purple-300/90 px-2 py-0.5 rounded-md font-medium border border-slate-700/60 inline-block">
+                  #${escapeHtml(item.genre)}
+                </span>
+              </div>
+            ` : ''}
+
+            ${item.memory ? `
+              <div class="mt-2.5 bg-purple-950/20 border-l-2 border-purple-500 pl-2.5 py-1 text-xs text-slate-300 italic line-clamp-2" title="${escapeHtml(item.memory)}">
+                "${escapeHtml(item.memory)}"
+              </div>
+            ` : ''}
+
+            ${downloadAttachedBtn}
+          </div>
+        </div>
+
+        <div class="p-4 pt-0 space-y-2">
+          ${sourceBtn}
+          <div class="flex items-center justify-between pt-1 border-t border-slate-800 text-[11px] text-slate-500">
+            <span>Добавлено: ${item.dateAdded}</span>
+            <div class="flex items-center gap-3">
+              <button type="button" onclick="openEditModal(${item.id})" class="text-purple-400 hover:text-purple-300 font-medium hover:underline">Редактировать</button>
+              <button type="button" onclick="deleteItem(${item.id})" class="text-rose-400 hover:text-rose-300 hover:underline">Удалить</button>
+            </div>
+          </div>
+        </div>
+      `;
+
+      return card;
+    }
+
+    async function deleteItem(id) {
+      if (confirm('Удалить эту запись из библиотеки?')) {
+        const db = await initDB();
+        const tx = db.transaction('items', 'readwrite');
+        tx.objectStore('items').delete(id);
+        tx.oncomplete = async () => {
+          if (supabaseClient) {
+            await supabaseClient.from('items').delete().eq('id', id);
+          }
+          loadItems();
+        };
+      }
+    }
+
+    function setFilter(cat) {
+      currentFilter = cat;
+      currentGenreFilter = 'all';
+      document.querySelectorAll('.cat-btn').forEach(btn => {
+        if (btn.dataset.category === cat) {
+          btn.className = "cat-btn px-4 py-1.5 rounded-full text-xs sm:text-sm font-medium border bg-purple-600 border-purple-500 text-white";
+        } else {
+          btn.className = "cat-btn px-4 py-1.5 rounded-full text-xs sm:text-sm font-medium border border-slate-800 bg-slate-900 text-slate-300 hover:border-slate-700 transition-colors";
+        }
+      });
+      renderGenreBar();
+      renderCards();
+    }
+
+    document.getElementById('searchInput').addEventListener('input', renderCards);
+
+    function getDefaultCover(cat) {
+      const defs = {
+        movie: 'https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?w=500&q=80',
+        series: 'https://images.unsplash.com/photo-1522869635100-9f4c5e86aa37?w=500&q=80',
+        music: 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=500&q=80',
+        game: 'https://images.unsplash.com/photo-1538481199705-c710c4e965fc?w=500&q=80',
+      };
+      return defs[cat] || defs.movie;
+    }
+
+    function escapeHtml(text) {
+      if (!text) return '';
+      return String(text).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
+    }
+
+    window.addEventListener('DOMContentLoaded', async () => {
+      await loadItems();
+      if (supabaseClient) {
+        await syncWithCloud();
+        await loadItems();
+      }
+    });
+  </script>
+</body>
+</html>
