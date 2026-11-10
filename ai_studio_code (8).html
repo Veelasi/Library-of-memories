@@ -1,0 +1,1451 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Library of Memories</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Chivo+Mono:ital,wght@0,300;0,400;0,500;0,600;1,400&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+  
+  <style>
+    :root {
+      --color-ember-orange: #ff4f2b;
+      --color-void-black: #000000;
+      --color-carbon: #1a1a1a;
+      --color-graphite-border: #3c3c3c;
+      --color-steel-mid: #737373;
+      --color-fog-light: #bfbfbf;
+      --color-bone-white: #f5f5f5;
+    }
+
+    * {
+      border-radius: 0px !important;
+      box-shadow: none !important;
+    }
+
+    body {
+      background-color: var(--color-void-black);
+      color: var(--color-bone-white);
+      font-family: 'Inter', ui-sans-serif, system-ui, sans-serif;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .font-mono-code {
+      font-family: 'Chivo Mono', monospace;
+    }
+
+    .font-display {
+      font-family: 'Inter', sans-serif;
+      font-weight: 300;
+      letter-spacing: -0.02em;
+    }
+
+    input:focus, select:focus, textarea:focus {
+      outline: none;
+      border-color: var(--color-ember-orange) !important;
+    }
+
+    .line-clamp-2 {
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+
+    .no-scrollbar::-webkit-scrollbar { display: none; }
+    .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+  </style>
+</head>
+<body class="selection:bg-[#ff4f2b] selection:text-black min-h-screen pb-16">
+
+  <!-- Шапка сайта -->
+  <header class="bg-[#000000] border-b border-[#3c3c3c] sticky top-0 z-40">
+    <div class="max-w-[1280px] mx-auto px-4 sm:px-8 py-3.5 flex flex-col md:flex-row md:items-center justify-between gap-3">
+      
+      <div class="flex items-center justify-between">
+        <div class="flex items-center gap-3">
+          <div class="w-3 h-3 bg-[#ff4f2b]"></div>
+          <div>
+            <span id="siteTitleText" class="font-mono-code text-sm sm:text-base tracking-wider uppercase text-[#f5f5f5] font-semibold">
+              LIBRARY OF MEMORIES
+            </span>
+          </div>
+        </div>
+
+        <!-- Кнопки для мобильных устройств -->
+        <div class="flex items-center gap-2 md:hidden">
+          <button onclick="toggleLang()" id="langBtnMobile" class="bg-[#1a1a1a] border border-[#3c3c3c] text-[#f5f5f5] px-2.5 py-1 text-xs font-mono-code font-bold">
+            RU
+          </button>
+          <button onclick="exportBackup()" class="bg-transparent border border-[#3c3c3c] text-[#f5f5f5] px-2.5 py-1 text-xs font-mono-code">
+            💾
+          </button>
+          <button onclick="openAddModal()" class="bg-[#ff4f2b] text-black px-3 py-1 text-xs font-mono-code uppercase font-bold">
+            +
+          </button>
+        </div>
+      </div>
+
+      <!-- Поисковая строка и управление для ПК -->
+      <div class="flex items-center gap-3 w-full md:w-auto">
+        <div class="relative flex-1 md:w-80">
+          <span class="absolute left-3 top-2.5 font-mono-code text-xs text-[#737373]">></span>
+          <input 
+            id="searchInput" 
+            type="text" 
+            placeholder="Поиск по коллекции..." 
+            class="w-full bg-[#1a1a1a] border border-[#3c3c3c] pl-7 pr-3 py-2 text-xs font-mono-code text-[#f5f5f5] placeholder-[#737373] transition"
+          >
+        </div>
+
+        <div class="hidden md:flex items-center gap-2">
+          <button onclick="toggleLang()" id="langBtn" class="bg-[#1a1a1a] border border-[#3c3c3c] hover:border-[#f5f5f5] text-[#f5f5f5] px-3 py-2 text-xs font-mono-code font-bold transition">
+            RU / EN
+          </button>
+          <button onclick="exportBackup()" id="backupBtn" class="bg-transparent border border-[#3c3c3c] hover:border-[#f5f5f5] text-[#f5f5f5] px-4 py-2 text-xs font-mono-code uppercase transition">
+            БЭКАП
+          </button>
+          <button onclick="openAddModal()" id="addBtn" class="bg-[#ff4f2b] hover:bg-[#e0401f] text-black px-5 py-2 text-xs font-mono-code uppercase font-bold tracking-wider transition">
+            + ДОБАВИТЬ
+          </button>
+        </div>
+      </div>
+
+    </div>
+  </header>
+
+  <!-- Категории -->
+  <div class="bg-[#000000] border-b border-[#3c3c3c]">
+    <div class="max-w-[1280px] mx-auto px-4 sm:px-8 py-2 flex items-center gap-2 overflow-x-auto no-scrollbar">
+      <button onclick="setFilter('all')" class="cat-btn font-mono-code text-xs uppercase px-4 py-1.5 transition bg-[#ff4f2b] text-black border border-[#ff4f2b]" data-cat="all">ВСЕ</button>
+      <button onclick="setFilter('anime')" class="cat-btn font-mono-code text-xs uppercase px-4 py-1.5 transition bg-[#1a1a1a] text-[#bfbfbf] border border-[#3c3c3c] hover:text-[#f5f5f5]" data-cat="anime">АНИМЕ</button>
+      <button onclick="setFilter('movie')" class="cat-btn font-mono-code text-xs uppercase px-4 py-1.5 transition bg-[#1a1a1a] text-[#bfbfbf] border border-[#3c3c3c] hover:text-[#f5f5f5]" data-cat="movie">ФИЛЬМЫ</button>
+      <button onclick="setFilter('series')" class="cat-btn font-mono-code text-xs uppercase px-4 py-1.5 transition bg-[#1a1a1a] text-[#bfbfbf] border border-[#3c3c3c] hover:text-[#f5f5f5]" data-cat="series">СЕРИАЛЫ</button>
+      <button onclick="setFilter('music')" class="cat-btn font-mono-code text-xs uppercase px-4 py-1.5 transition bg-[#1a1a1a] text-[#bfbfbf] border border-[#3c3c3c] hover:text-[#f5f5f5]" data-cat="music">МУЗЫКА</button>
+      <button onclick="setFilter('game')" class="cat-btn font-mono-code text-xs uppercase px-4 py-1.5 transition bg-[#1a1a1a] text-[#bfbfbf] border border-[#3c3c3c] hover:text-[#f5f5f5]" data-cat="game">ИГРЫ</button>
+    </div>
+  </div>
+
+  <!-- Главный экран -->
+  <main class="max-w-[1280px] mx-auto px-4 sm:px-8 pt-6">
+    <div id="genresBar" class="flex flex-wrap items-center gap-2 mb-6 min-h-[32px]"></div>
+    <div id="cardsGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"></div>
+
+    <div id="emptyState" class="hidden text-center py-28 border border-dashed border-[#3c3c3c]">
+      <div id="emptyLabel" class="font-mono-code text-xs text-[#737373] tracking-widest uppercase mb-2">ПУСТО</div>
+      <p id="emptyText" class="font-display text-2xl text-[#f5f5f5] max-w-sm mx-auto mb-6">В библиотеке пока нет записей. Сохраните первое воспоминание.</p>
+      <button onclick="openAddModal()" id="emptyAddBtn" class="bg-[#ff4f2b] text-black font-mono-code text-xs uppercase px-6 py-2.5 font-bold tracking-wider">
+        + ДОБАВИТЬ
+      </button>
+    </div>
+  </main>
+
+  <!-- Цитата-разделитель -->
+  <section class="w-full bg-[#ff4f2b] text-black py-12 px-4 mt-16 text-center">
+    <div class="max-w-[1280px] mx-auto">
+      <h2 id="bannerQuote" class="font-display text-xl sm:text-3xl text-black font-normal leading-tight">
+        "Сохраняй то, что дорого. Память не должна зависеть от лицензий стримингов."
+      </h2>
+    </div>
+  </section>
+
+  <!-- ДЕТАЛЬНЫЙ ПРОСМОТР КАРТОЧКИ (DETAIL MODAL) -->
+  <div id="cardDetailModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/95 hidden p-3 sm:p-6 overflow-y-auto">
+    <div class="bg-[#000000] border border-[#3c3c3c] w-full max-w-3xl relative my-auto p-0 flex flex-col md:flex-row">
+      <button type="button" onclick="closeDetailModal()" class="absolute top-3 right-3 bg-[#1a1a1a] border border-[#3c3c3c] text-[#f5f5f5] hover:text-[#ff4f2b] w-8 h-8 flex items-center justify-center font-mono-code text-xs z-20">✕</button>
+
+      <div class="w-full md:w-5/12 h-80 md:h-auto min-h-[340px] relative bg-[#1a1a1a] border-b md:border-b-0 md:border-r border-[#3c3c3c]">
+        <img id="dCover" src="" referrerpolicy="no-referrer" class="w-full h-full object-cover">
+        <div class="absolute bottom-0 inset-x-0 bg-[#000000]/85 p-3 border-t border-[#3c3c3c] flex items-center justify-between">
+          <span id="dBadge" class="font-mono-code text-[11px] text-[#ff4f2b] uppercase tracking-wider font-semibold"></span>
+          <span class="font-mono-code text-xs text-[#f5f5f5] bg-[#1a1a1a] px-2 py-0.5 border border-[#3c3c3c]">
+            ★ <span id="dRating" class="text-[#ff4f2b]"></span>/10
+          </span>
+        </div>
+      </div>
+
+      <div class="p-6 md:p-8 flex-1 flex flex-col justify-between space-y-6">
+        <div class="space-y-3">
+          <div class="font-mono-code text-[11px] text-[#737373] tracking-widest uppercase" id="dYear"></div>
+          <h2 id="dTitle" class="font-display text-2xl sm:text-3xl text-[#f5f5f5] leading-tight"></h2>
+          <div id="dOrigSubtitle" class="font-mono-code text-xs text-[#bfbfbf]"></div>
+          
+          <div class="border-t border-[#3c3c3c] pt-4 space-y-2 font-mono-code text-xs">
+            <div id="rowMeta" class="flex justify-between py-1 border-b border-[#1a1a1a]">
+              <span class="text-[#737373] uppercase" id="dMetaLabel">ХРОНОМЕТРАЖ:</span>
+              <span id="dMeta" class="text-[#f5f5f5] font-semibold"></span>
+            </div>
+            <div id="rowCreator" class="flex justify-between py-1 border-b border-[#1a1a1a]">
+              <span class="text-[#737373] uppercase" id="dCreatorLabel">АВТОР:</span>
+              <span id="dCreatorText" class="text-[#f5f5f5] font-semibold"></span>
+            </div>
+            <div class="flex justify-between py-1 border-b border-[#1a1a1a]">
+              <span class="text-[#737373] uppercase" id="dGenreLabel">ЖАНР:</span>
+              <span id="dGenre" class="text-[#ff4f2b]"></span>
+            </div>
+          </div>
+
+          <div class="bg-[#1a1a1a] p-4 border border-[#3c3c3c] mt-4">
+            <div class="font-mono-code text-[10px] text-[#737373] uppercase tracking-widest mb-1.5" id="dMemoryLabel">РЕЦЕНЗИЯ И ВОСПОМИНАНИЯ:</div>
+            <p id="dMemory" class="text-xs sm:text-sm text-[#bfbfbf] leading-relaxed italic"></p>
+          </div>
+        </div>
+
+        <div class="space-y-2 pt-2">
+          <div id="dSourceBox"></div>
+          <div class="grid grid-cols-2 gap-2">
+            <button id="dEditBtn" class="bg-transparent border border-[#3c3c3c] hover:border-[#f5f5f5] text-[#f5f5f5] py-2.5 text-xs font-mono-code uppercase transition">
+              РЕДАКТИРОВАТЬ
+            </button>
+            <button id="dDelBtn" class="bg-transparent border border-[#3c3c3c] hover:border-[#ff4f2b] text-[#ff4f2b] py-2.5 text-xs font-mono-code uppercase transition">
+              УДАЛИТЬ
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ОКНО ПОДТВЕРЖДЕНИЯ УДАЛЕНИЯ (БЕЗ СБОЕВ БРАУЗЕРА) -->
+  <div id="deleteConfirmModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/90 hidden p-4">
+    <div class="bg-[#000000] border border-[#ff4f2b] w-full max-w-sm p-6 text-center space-y-4">
+      <div class="w-3 h-3 bg-[#ff4f2b] mx-auto"></div>
+      <h3 id="delPromptTitle" class="font-display text-xl text-[#f5f5f5]">Удалить запись?</h3>
+      <p id="delPromptDesc" class="font-mono-code text-xs text-[#bfbfbf]">Эта запись будет навсегда стёрта из локальной памяти и облака.</p>
+      <div class="grid grid-cols-2 gap-3 pt-2">
+        <button type="button" onclick="closeDeleteConfirmModal()" id="delPromptCancel" class="border border-[#3c3c3c] hover:border-[#f5f5f5] text-[#f5f5f5] py-2 text-xs font-mono-code uppercase transition">
+          ОТМЕНА
+        </button>
+        <button type="button" onclick="executeDelete()" id="delPromptConfirm" class="bg-[#ff4f2b] hover:bg-[#e0401f] text-black py-2 text-xs font-mono-code uppercase font-bold transition">
+          УДАЛИТЬ
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- МОДАЛЬНОЕ ОКНО ДОБАВЛЕНИЯ / РЕДАКТИРОВАНИЯ -->
+  <div id="itemModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/90 hidden p-3 sm:p-6 overflow-y-auto">
+    <div class="bg-[#000000] border border-[#3c3c3c] w-full max-w-lg p-6 relative my-auto">
+      <button type="button" onclick="closeModal()" class="absolute top-4 right-4 text-[#737373] hover:text-[#f5f5f5] font-mono-code text-sm">✕</button>
+      <h2 id="modalTitle" class="font-display text-xl text-[#f5f5f5] mb-5 font-normal">НОВАЯ ЗАПИСЬ</h2>
+
+      <form id="itemForm" onsubmit="saveItem(event)" class="space-y-4">
+        <div class="relative">
+          <label id="lblTitle" class="block font-mono-code text-[11px] text-[#737373] uppercase mb-1">НАЗВАНИЕ ПРОИЗВЕДЕНИЯ *</label>
+          <div class="relative">
+            <input 
+              id="fTitle" 
+              type="text" 
+              autocomplete="off" 
+              required 
+              placeholder="Hunt, Интерстеллар, Radiohead, Cowboy Bebop..." 
+              class="w-full bg-[#1a1a1a] border border-[#3c3c3c] px-3.5 py-2.5 text-xs font-mono-code text-[#f5f5f5] placeholder-[#737373]"
+              onfocus="handleTitleFocus()" 
+              oninput="handleTitleInput(this.value)"
+            >
+            <span id="spinner" class="absolute right-3 top-2.5 font-mono-code text-xs text-[#ff4f2b] hidden animate-pulse">ПОИСК...</span>
+          </div>
+
+          <div id="sugBox" class="absolute left-0 right-0 top-full mt-1 bg-[#1a1a1a] border border-[#3c3c3c] z-50 hidden flex flex-col">
+            <div id="sugHeader" class="flex gap-1 p-2 bg-[#000000] border-b border-[#3c3c3c] text-[10px] font-mono-code uppercase overflow-x-auto no-scrollbar">
+              <button type="button" onclick="setSugTab('all')" class="s-tab px-2.5 py-1 bg-[#ff4f2b] text-black font-bold" data-tab="all">ВСЕ <span id="c-all"></span></button>
+              <button type="button" onclick="setSugTab('anime')" class="s-tab px-2.5 py-1 bg-[#1a1a1a] text-[#bfbfbf] border border-[#3c3c3c]" data-tab="anime">АНИМЕ <span id="c-anime"></span></button>
+              <button type="button" onclick="setSugTab('movie')" class="s-tab px-2.5 py-1 bg-[#1a1a1a] text-[#bfbfbf] border border-[#3c3c3c]" data-tab="movie">КИНО <span id="c-movie"></span></button>
+              <button type="button" onclick="setSugTab('series')" class="s-tab px-2.5 py-1 bg-[#1a1a1a] text-[#bfbfbf] border border-[#3c3c3c]" data-tab="series">СЕРИАЛЫ <span id="c-series"></span></button>
+              <button type="button" onclick="setSugTab('music')" class="s-tab px-2.5 py-1 bg-[#1a1a1a] text-[#bfbfbf] border border-[#3c3c3c]" data-tab="music">МУЗЫКА <span id="c-music"></span></button>
+              <button type="button" onclick="setSugTab('game')" class="s-tab px-2.5 py-1 bg-[#1a1a1a] text-[#bfbfbf] border border-[#3c3c3c]" data-tab="game">ИГРЫ <span id="c-game"></span></button>
+            </div>
+            <div id="sugList" class="overflow-y-auto max-h-56 divide-y divide-[#3c3c3c] font-mono-code text-xs"></div>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label id="lblCategory" class="block font-mono-code text-[11px] text-[#737373] uppercase mb-1">КАТЕГОРИЯ</label>
+            <select id="fCategory" class="w-full bg-[#1a1a1a] border border-[#3c3c3c] px-3 py-2 text-xs font-mono-code text-[#f5f5f5]" onchange="updateCategoryLabels()">
+              <option value="anime">Аниме</option>
+              <option value="movie">Фильм</option>
+              <option value="series">Сериал</option>
+              <option value="music">Музыка</option>
+              <option value="game">Игра</option>
+            </select>
+          </div>
+          <div>
+            <label id="lblCreator" class="block font-mono-code text-[11px] text-[#737373] uppercase mb-1">АВТОР / РЕЖИССЁР</label>
+            <input id="fCreator" type="text" placeholder="Определится автоматически..." class="w-full bg-[#1a1a1a] border border-[#3c3c3c] px-3 py-2 text-xs font-mono-code text-[#f5f5f5]">
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label id="lblOrigTitle" class="block font-mono-code text-[11px] text-[#737373] uppercase mb-1">ОРИГИНАЛЬНОЕ НАЗВАНИЕ</label>
+            <input id="fOrigTitle" type="text" placeholder="The Hunt (Jagten), Cowboy Bebop..." class="w-full bg-[#1a1a1a] border border-[#3c3c3c] px-3 py-2 text-xs font-mono-code text-[#f5f5f5]">
+          </div>
+          <div>
+            <label id="lblMeta" class="block font-mono-code text-[11px] text-[#737373] uppercase mb-1">ХРОНОМЕТРАЖ / СЕЗОНЫ</label>
+            <input id="fMeta" type="text" placeholder="1 ч. 55 мин. / 5 сезонов..." class="w-full bg-[#1a1a1a] border border-[#3c3c3c] px-3 py-2 text-xs font-mono-code text-[#f5f5f5]">
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label id="lblGenre" class="block font-mono-code text-[11px] text-[#737373] uppercase mb-1">ЖАНР / ТЕГ</label>
+            <input id="fGenre" type="text" placeholder="Драма, Триллер, RPG..." class="w-full bg-[#1a1a1a] border border-[#3c3c3c] px-3 py-2 text-xs font-mono-code text-[#f5f5f5]">
+          </div>
+          <div>
+            <label id="lblScore" class="block font-mono-code text-[11px] text-[#737373] uppercase mb-1">ОЦЕНКА (1-10)</label>
+            <input id="fRating" type="number" min="1" max="10" value="10" class="w-full bg-[#1a1a1a] border border-[#3c3c3c] px-3 py-2 text-xs font-mono-code text-[#f5f5f5]">
+          </div>
+        </div>
+
+        <div>
+          <label id="lblCover" class="block font-mono-code text-[11px] text-[#737373] uppercase mb-1">ССЫЛКА НА ОБЛОЖКУ</label>
+          <div class="flex gap-2">
+            <input id="fCover" type="text" placeholder="https://..." class="w-full bg-[#1a1a1a] border border-[#3c3c3c] px-3 py-2 text-xs font-mono-code text-[#f5f5f5]">
+            <div id="cPrev" class="w-8 h-8 bg-[#1a1a1a] border border-[#3c3c3c] shrink-0 flex items-center justify-center text-[10px] font-mono-code text-[#737373]">IMG</div>
+          </div>
+        </div>
+
+        <div>
+          <label id="lblMemory" class="block font-mono-code text-[11px] text-[#ff4f2b] uppercase mb-1">ВОСПОМИНАНИЯ И РЕЦЕНЗИЯ</label>
+          <textarea id="fMemory" rows="2" placeholder="Эмоции, заметки, детали..." class="w-full bg-[#1a1a1a] border border-[#3c3c3c] p-2.5 text-xs text-[#f5f5f5]"></textarea>
+        </div>
+
+        <div>
+          <label id="lblSource" class="block font-mono-code text-[11px] text-[#737373] uppercase mb-1">ССЫЛКА НА ПРОСМОТР / ИСТОЧНИК</label>
+          <input id="fSource" type="text" placeholder="https://..." class="w-full bg-[#1a1a1a] border border-[#3c3c3c] px-3 py-2 text-xs font-mono-code text-[#f5f5f5]">
+        </div>
+
+        <div class="flex justify-end gap-3 pt-3 border-t border-[#3c3c3c]">
+          <button type="button" onclick="closeModal()" id="btnCancel" class="px-4 py-2 text-xs font-mono-code uppercase text-[#737373] hover:text-[#f5f5f5]">ОТМЕНА</button>
+          <button type="submit" id="btnSubmit" class="bg-[#ff4f2b] hover:bg-[#e0401f] text-black px-6 py-2 text-xs font-mono-code uppercase font-bold tracking-wider">СОХРАНИТЬ</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <footer class="bg-[#000000] border-t border-[#3c3c3c] py-12 px-4 sm:px-8 mt-12 text-center md:text-left">
+    <div class="max-w-[1280px] mx-auto flex flex-col md:flex-row items-center justify-between gap-4 font-mono-code text-xs text-[#737373]">
+      <div>
+        <span class="text-[#f5f5f5]">LIBRARY OF MEMORIES</span> — DIGITAL AUTONOMOUS ARCHIVE
+      </div>
+      <div>
+        BILINGUAL // CLOUD SUPABASE + LOCAL INDEXEDDB
+      </div>
+    </div>
+  </footer>
+
+  <script>
+    const MASTER_DB = 'LibraryOfMemories_Main';
+    let db = null, allItems = [], curFilter = 'all', curGenre = 'all', editId = null, sTimer = null, sugs = [], curSugTab = 'all';
+    let itemPendingDeleteId = null;
+
+    let currentLang = localStorage.getItem('lib_lang') || 'ru';
+
+    const I18N = {
+      ru: {
+        siteTitle: 'LIBRARY OF MEMORIES',
+        searchPlaceholder: 'Поиск по коллекции...',
+        backupBtn: 'БЭКАП',
+        addBtn: '+ ДОБАВИТЬ',
+        all: 'ВСЕ',
+        anime: 'АНИМЕ',
+        movie: 'ФИЛЬМЫ',
+        series: 'СЕРИАЛЫ',
+        music: 'МУЗЫКА',
+        game: 'ИГРЫ',
+        emptyLabel: 'ПУСТО',
+        emptyText: 'В библиотеке пока нет записей. Сохраните первое воспоминание.',
+        emptyAddBtn: '+ ДОБАВИТЬ',
+        bannerQuote: '"Сохраняй то, что дорого. Память не должна зависеть от лицензий стримингов."',
+        detailsLink: 'ПОДРОБНЕЕ ➔',
+        edit: 'РЕДАКТИРОВАТЬ',
+        delete: 'УДАЛИТЬ',
+        cancel: 'ОТМЕНА',
+        save: 'СОХРАНИТЬ',
+        newEntry: 'НОВАЯ ЗАПИСЬ',
+        editEntry: 'РЕДАКТИРОВАНИЕ ЗАПИСИ',
+        delPromptTitle: 'Удалить запись?',
+        delPromptDesc: 'Эта запись будет навсегда стёрта из локальной памяти и облака.',
+        lblTitle: 'НАЗВАНИЕ ПРОИЗВЕДЕНИЯ *',
+        lblCategory: 'КАТЕГОРИЯ',
+        lblOrigTitle: 'ОРИГИНАЛЬНОЕ НАЗВАНИЕ',
+        lblGenre: 'ЖАНР / ТЕГ',
+        lblScore: 'ОЦЕНКА (1-10)',
+        lblCover: 'ССЫЛКА НА ОБЛОЖКУ',
+        lblMemory: 'ВОСПОМИНАНИЯ И РЕЦЕНЗИЯ',
+        lblSource: 'ССЫЛКА НА ПРОСМОТР / ИСТОЧНИК',
+        watch: 'СМОТРЕТЬ',
+        listen: 'СЛУШАТЬ',
+        play: 'ИГРАТЬ',
+        dateLogged: 'ДАТА ДОБАВЛЕНИЯ',
+        reviewTitle: 'РЕЦЕНЗИЯ И ВОСПОМИНАНИЯ:'
+      },
+      en: {
+        siteTitle: 'LIBRARY OF MEMORIES',
+        searchPlaceholder: 'Search archive...',
+        backupBtn: 'BACKUP',
+        addBtn: '+ ADD ENTRY',
+        all: 'ALL',
+        anime: 'ANIME',
+        movie: 'MOVIES',
+        series: 'SERIES',
+        music: 'MUSIC',
+        game: 'GAMES',
+        emptyLabel: 'ARCHIVE_EMPTY',
+        emptyText: 'No records found. Preserve your first memory.',
+        emptyAddBtn: '+ ADD ENTRY',
+        bannerQuote: '"Preserve what matters. Memories should never depend on streaming licenses."',
+        detailsLink: 'DETAILS ➔',
+        edit: 'EDIT',
+        delete: 'DELETE',
+        cancel: 'CANCEL',
+        save: 'SAVE ENTRY',
+        newEntry: 'NEW ENTRY',
+        editEntry: 'EDIT ENTRY',
+        delPromptTitle: 'Delete record?',
+        delPromptDesc: 'This record will be permanently purged from local storage and the cloud.',
+        lblTitle: 'TITLE *',
+        lblCategory: 'CATEGORY',
+        lblOrigTitle: 'ORIGINAL TITLE',
+        lblGenre: 'GENRE / TAG',
+        lblScore: 'SCORE (1-10)',
+        lblCover: 'COVER POSTER URL',
+        lblMemory: 'PERSONAL REVIEW & MEMORIES',
+        lblSource: 'STREAM / SOURCE URL',
+        watch: 'WATCH',
+        listen: 'LISTEN',
+        play: 'PLAY',
+        dateLogged: 'DATE ADDED',
+        reviewTitle: 'REVIEW & MEMORIES:'
+      }
+    };
+
+    function toggleLang() {
+      currentLang = currentLang === 'ru' ? 'en' : 'ru';
+      localStorage.setItem('lib_lang', currentLang);
+      applyLanguage();
+    }
+
+    function applyLanguage() {
+      const t = I18N[currentLang];
+      
+      const langText = currentLang === 'ru' ? 'RU / EN' : 'EN / RU';
+      document.getElementById('langBtn').textContent = langText;
+      document.getElementById('langBtnMobile').textContent = currentLang.toUpperCase();
+      
+      document.getElementById('siteTitleText').textContent = t.siteTitle;
+      document.getElementById('searchInput').placeholder = t.searchPlaceholder;
+      document.getElementById('backupBtn').textContent = t.backupBtn;
+      document.getElementById('addBtn').textContent = t.addBtn;
+      document.getElementById('bannerQuote').textContent = t.bannerQuote;
+
+      document.getElementById('emptyLabel').textContent = t.emptyLabel;
+      document.getElementById('emptyText').textContent = t.emptyText;
+      document.getElementById('emptyAddBtn').textContent = t.emptyAddBtn;
+
+      document.getElementById('lblTitle').textContent = t.lblTitle;
+      document.getElementById('lblCategory').textContent = t.lblCategory;
+      document.getElementById('lblOrigTitle').textContent = t.lblOrigTitle;
+      document.getElementById('lblGenre').textContent = t.lblGenre;
+      document.getElementById('lblScore').textContent = t.lblScore;
+      document.getElementById('lblCover').textContent = t.lblCover;
+      document.getElementById('lblMemory').textContent = t.lblMemory;
+      document.getElementById('lblSource').textContent = t.lblSource;
+      document.getElementById('btnCancel').textContent = t.cancel;
+      document.getElementById('btnSubmit').textContent = t.save;
+
+      document.getElementById('delPromptTitle').textContent = t.delPromptTitle;
+      document.getElementById('delPromptDesc').textContent = t.delPromptDesc;
+      document.getElementById('delPromptCancel').textContent = t.cancel;
+      document.getElementById('delPromptConfirm').textContent = t.delete;
+
+      document.querySelectorAll('.cat-btn').forEach(b => {
+        const cat = b.dataset.cat;
+        if (t[cat]) b.textContent = t[cat];
+      });
+
+      const catSelect = document.getElementById('fCategory');
+      catSelect.options[0].text = t.anime;
+      catSelect.options[1].text = currentLang === 'ru' ? 'Фильм' : 'Movie';
+      catSelect.options[2].text = currentLang === 'ru' ? 'Сериал' : 'Series';
+      catSelect.options[3].text = currentLang === 'ru' ? 'Музыка' : 'Music';
+      catSelect.options[4].text = currentLang === 'ru' ? 'Игра' : 'Game';
+
+      updateCategoryLabels();
+      renderGenresBar();
+      renderCards();
+    }
+
+    const SB_URL = 'https://zwlvkxieirgizyyzpyxd.supabase.co';
+    const SB_KEY = 'sb_publishable_s4c5cypmhF6GXCoWeP3SQA_KnnnZCeC';
+    let supabaseClient = null;
+    try { if (window.supabase) supabaseClient = window.supabase.createClient(SB_URL, SB_KEY); } catch(e){}
+
+    const CREATOR_LABELS = {
+      ru: {
+        movie: { label: 'РЕЖИССЁР', ph: 'Томас Винтерберг, Кристофер Нолан...' },
+        series: { label: 'СОЗДАТЕЛИ / СТУДИЯ', ph: 'Винс Гиллиган, HBO...' },
+        anime: { label: 'СТУДИЯ / АВТОР', ph: 'Sunrise, MAPPA...' },
+        music: { label: 'ИСПОЛНИТЕЛЬ', ph: 'Radiohead...' },
+        game: { label: 'РАЗРАБОТЧИК', ph: 'CD Projekt RED...' }
+      },
+      en: {
+        movie: { label: 'DIRECTOR', ph: 'Thomas Vinterberg, Christopher Nolan...' },
+        series: { label: 'CREATORS / NETWORK', ph: 'Vince Gilligan, HBO...' },
+        anime: { label: 'STUDIO / AUTHOR', ph: 'Sunrise, MAPPA...' },
+        music: { label: 'ARTIST', ph: 'Radiohead...' },
+        game: { label: 'DEVELOPER', ph: 'CD Projekt RED...' }
+      }
+    };
+
+    const BANNED_GENRES = new Set([
+      'видеоигра', 'видеоигры', 'игра', 'игры', 'game', 'games', 'video game',
+      'музыка', 'песня', 'трек', 'music', 'song', 'альбом',
+      'фильм', 'фильмы', 'кино', 'кинофильм', 'movie', 'film',
+      'сериал', 'сериалы', 'телесериал', 'tv show', 'series',
+      'аниме', 'манга', 'anime', 'manga', 'разное', 'произведение', 'undefined', 'null'
+    ]);
+
+    const DISCOVERY_POOL = [
+      { title: 'Ковбой Бибоп', origTitle: 'Cowboy Bebop', cat: 'anime', creator: 'Студия Sunrise, режиссёр Синъитиро Ватанабэ', meta: 'Япония • 26 эп. по ~24 мин.', genre: 'Фантастика', year: '1998', cover: 'https://images.unsplash.com/photo-1578632767115-351597cf2477?w=500' },
+      { title: 'Охота', origTitle: 'The Hunt (Jagten)', cat: 'movie', creator: 'Томас Винтерберг', meta: '1 ч. 55 мин.', genre: 'Драма', year: '2012', cover: 'https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?w=500' },
+      { title: 'Подозрительные лица', origTitle: 'The Usual Suspects', cat: 'movie', creator: 'Брайан Сингер', meta: '1 ч. 46 мин.', genre: 'Триллер', year: '1995', cover: 'https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?w=500' },
+      { title: 'Во все тяжкие', origTitle: 'Breaking Bad', cat: 'series', creator: 'Винс Гиллиган (AMC)', meta: '5 сезонов • 62 эп.', genre: 'Криминал', year: '2008', cover: 'https://images.unsplash.com/photo-1522869635100-9f4c5e86aa37?w=500' },
+      { title: 'Атака титанов', origTitle: 'Shingeki no Kyojin', cat: 'anime', creator: 'Студия MAPPA / Wit', meta: 'Япония • 4 сезона • 89 эп.', genre: 'Сёнэн', year: '2013', cover: 'https://images.unsplash.com/photo-1607604276583-eef5d076aa5f?w=500' },
+      { title: 'Интерстеллар', origTitle: 'Interstellar', cat: 'movie', creator: 'Кристофер Нолан', meta: '2 ч. 49 мин.', genre: 'Фантастика', year: '2014', cover: 'https://images.unsplash.com/photo-1451187580459-43490279c0fa?w=500' },
+      { title: 'Ведьмак 3: Дикая Охота', origTitle: 'The Witcher 3: Wild Hunt', cat: 'game', creator: 'CD Projekt RED', meta: 'ПК, Консоли', genre: 'RPG', year: '2015', cover: 'https://images.unsplash.com/photo-1511512578047-dfb367046420?w=500' },
+      { title: 'Radiohead — OK Computer', origTitle: 'OK Computer', cat: 'music', creator: 'Radiohead', meta: '12 треков', genre: 'Рок', year: '1997', cover: 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=500' }
+    ];
+
+    function updateCategoryLabels() {
+      const cat = document.getElementById('fCategory').value;
+      const dict = CREATOR_LABELS[currentLang] || CREATOR_LABELS.ru;
+      const info = dict[cat] || dict.movie;
+      document.getElementById('lblCreator').textContent = info.label;
+      document.getElementById('fCreator').placeholder = info.ph;
+      
+      const metaLbl = document.getElementById('lblMeta');
+      if (currentLang === 'ru') {
+        if (cat === 'movie') metaLbl.textContent = 'ХРОНОМЕТРАЖ';
+        else if (cat === 'series') metaLbl.textContent = 'СЕЗОНЫ И СЕРИИ';
+        else if (cat === 'anime') metaLbl.textContent = 'ЭПИЗОДЫ И ФОРМАТ';
+        else metaLbl.textContent = 'ДОП. СВЕДЕНИЯ';
+      } else {
+        if (cat === 'movie') metaLbl.textContent = 'RUNTIME';
+        else if (cat === 'series') metaLbl.textContent = 'SEASONS & EPISODES';
+        else if (cat === 'anime') metaLbl.textContent = 'EPISODES & FORMAT';
+        else metaLbl.textContent = 'ADDITIONAL INFO';
+      }
+    }
+
+    function jsonp(url) {
+      return new Promise(res => {
+        const cb = 'cb_' + Math.random().toString(36).slice(2) + '_' + Date.now();
+        const s = document.createElement('script');
+        window[cb] = d => { clean(); res(d); };
+        const clean = () => { delete window[cb]; s.remove(); };
+        s.onerror = () => { clean(); res(null); };
+        s.src = url + (url.includes('?') ? '&' : '?') + 'callback=' + cb;
+        document.body.appendChild(s);
+        setTimeout(() => { clean(); res(null); }, 4000);
+      });
+    }
+
+    function initDB() {
+      return new Promise((resolve) => {
+        if (db) return resolve(db);
+        try {
+          const req = indexedDB.open(MASTER_DB, 1);
+          req.onupgradeneeded = e => {
+            const d = e.target.result;
+            if (!d.objectStoreNames.contains('items')) {
+              d.createObjectStore('items', { keyPath: 'id' });
+            }
+          };
+          req.onsuccess = e => {
+            db = e.target.result;
+            resolve(db);
+          };
+          req.onerror = () => resolve(null);
+          req.onblocked = () => resolve(null);
+        } catch(err) {
+          resolve(null);
+        }
+      });
+    }
+
+    async function recoverOld() {
+      if (!db) return;
+      const allOldNames = [
+        'LibraryOfEverythingDB', 'LibraryOfEverything_V3', 'LibraryOfEverything_V4',
+        'LibraryOfEverything_V5', 'LibraryOfEverything_V6', 'LibraryOfEverything_V7',
+        'LibraryOfEverything_V8', 'LibraryOfEverything_V9', 'LibraryOfEverything_V10',
+        'LibraryOfEverything_V11'
+      ];
+
+      for (const name of allOldNames) {
+        try {
+          await new Promise((resolve) => {
+            const timer = setTimeout(resolve, 600);
+            try {
+              const req = indexedDB.open(name);
+              req.onsuccess = (e) => {
+                const old = e.target.result;
+                if (old.objectStoreNames.contains('items')) {
+                  const tx = old.transaction('items', 'readonly');
+                  tx.objectStore('items').getAll().onsuccess = (ev) => {
+                    const items = ev.target.result || [];
+                    if (items.length > 0 && db) {
+                      const writeTx = db.transaction('items', 'readwrite');
+                      const store = writeTx.objectStore('items');
+                      items.forEach(it => {
+                        if (it && (it.title || it.id)) store.put(it);
+                      });
+                    }
+                    old.close();
+                    clearTimeout(timer);
+                    resolve();
+                  };
+                  tx.onerror = () => { old.close(); clearTimeout(timer); resolve(); };
+                } else {
+                  old.close();
+                  clearTimeout(timer);
+                  resolve();
+                }
+              };
+              req.onerror = () => { clearTimeout(timer); resolve(); };
+              req.onblocked = () => { clearTimeout(timer); resolve(); };
+            } catch (err) {
+              clearTimeout(timer);
+              resolve();
+            }
+          });
+        } catch (err) {}
+      }
+    }
+
+    function packMemory(creator, origTitle, meta, note) {
+      return JSON.stringify({ c: creator || '', o: origTitle || '', m: meta || '', n: note || '' });
+    }
+
+    function parseItemData(raw) {
+      const str = raw.memory || '';
+      let creator = '', origTitle = '', meta = '', note = str;
+      if (str.startsWith('{') && str.endsWith('}')) {
+        try {
+          const p = JSON.parse(str);
+          creator = p.c || ''; origTitle = p.o || ''; meta = p.m || ''; note = p.n || '';
+        } catch(e){}
+      } else if (str.startsWith('[') && str.includes(']')) {
+        const end = str.indexOf(']');
+        creator = str.slice(1, end).trim();
+        note = str.slice(end + 1).trim();
+      }
+
+      if (creator && raw.title && creator.endsWith(raw.title)) {
+        creator = creator.replace(raw.title, '').trim();
+      }
+
+      const cleanG = normalizeGenre(raw.genre, raw.category, raw.title, '');
+      return { ...raw, creator, origTitle, meta, memory: note, genre: cleanG };
+    }
+
+    function normalizeGenre(rawGenre, cat, title = '', desc = '') {
+      let g = (rawGenre || '').replace(/[#]/g, '').trim();
+      const low = g.toLowerCase();
+
+      if (!g || BANNED_GENRES.has(low)) {
+        const text = (title + ' ' + desc).toLowerCase();
+        if (cat === 'game') {
+          if (text.includes('rpg') || text.includes('ролев') || text.includes('souls')) return currentLang === 'ru' ? 'RPG' : 'RPG';
+          if (text.includes('shooter') || text.includes('шутер') || text.includes('fps')) return currentLang === 'ru' ? 'ШУТЕР' : 'SHOOTER';
+          if (text.includes('horror') || text.includes('хоррор') || text.includes('survival')) return currentLang === 'ru' ? 'ХОРРОР' : 'HORROR';
+          if (text.includes('strategy') || text.includes('стратег')) return currentLang === 'ru' ? 'СТРАТЕГИЯ' : 'STRATEGY';
+          return currentLang === 'ru' ? 'ПРИКЛЮЧЕНИЯ' : 'ADVENTURE';
+        } else if (cat === 'music') {
+          if (text.includes('metal') || text.includes('метал')) return currentLang === 'ru' ? 'МЕТАЛ' : 'METAL';
+          if (text.includes('rap') || text.includes('рэп') || text.includes('hip-hop')) return currentLang === 'ru' ? 'РЭП' : 'HIP-HOP';
+          if (text.includes('electronic') || text.includes('электроник')) return currentLang === 'ru' ? 'ЭЛЕКТРОНИКА' : 'ELECTRONIC';
+          return currentLang === 'ru' ? 'РОК' : 'ROCK';
+        } else if (cat === 'movie') {
+          if (text.includes('sci-fi') || text.includes('фантастик')) return currentLang === 'ru' ? 'ФАНТАСТИКА' : 'SCI-FI';
+          if (text.includes('comedy') || text.includes('комед')) return currentLang === 'ru' ? 'КОМЕДИЯ' : 'COMEDY';
+          if (text.includes('action') || text.includes('боевик')) return currentLang === 'ru' ? 'БОЕВИК' : 'ACTION';
+          if (text.includes('thriller') || text.includes('триллер')) return currentLang === 'ru' ? 'ТРИЛЛЕР' : 'THRILLER';
+          return currentLang === 'ru' ? 'ДРАМА' : 'DRAMA';
+        } else if (cat === 'anime') {
+          if (text.includes('isekai') || text.includes('исекай')) return currentLang === 'ru' ? 'ИСЕКАЙ' : 'ISEKAI';
+          if (text.includes('mecha') || text.includes('меха')) return currentLang === 'ru' ? 'МЕХА' : 'MECHA';
+          return currentLang === 'ru' ? 'СЁНЭН' : 'SHOUNEN';
+        } else if (cat === 'series') {
+          if (text.includes('comedy') || text.includes('комед')) return currentLang === 'ru' ? 'КОМЕДИЯ' : 'COMEDY';
+          if (text.includes('crime') || text.includes('криминал')) return currentLang === 'ru' ? 'КРИМИНАЛ' : 'CRIME';
+          return currentLang === 'ru' ? 'ДРАМА' : 'DRAMA';
+        }
+      }
+      return g.toUpperCase();
+    }
+
+    function formatDuration(ms) {
+      if (!ms || typeof ms !== 'number' || ms < 60000) return '';
+      const totalMins = Math.round(ms / 60000);
+      const h = Math.floor(totalMins / 60);
+      const m = totalMins % 60;
+      if (currentLang === 'ru') {
+        return h > 0 ? (m > 0 ? `${h} ч. ${m} мин.` : `${h} ч.`) : `${m} мин.`;
+      } else {
+        return h > 0 ? (m > 0 ? `${h}h ${m}m` : `${h}h`) : `${m}m`;
+      }
+    }
+
+    function extractDurationFromText(text) {
+      if (!text) return '';
+      const patterns = [
+        /(?:длительность|продолжительность|хронометраж|running time|runtime)\D*?(\d{2,3})\s*(?:мин|min)/i,
+        /\b(\d{2,3})\s*(?:минут[а-я]*|minutes)\b/i,
+        /\b(\d)\s*ч(?:ас[а-я]*)?\s*(\d{1,2})\s*мин/i
+      ];
+      for (const regex of patterns) {
+        const match = text.match(regex);
+        if (match) {
+          if (match[2]) {
+            const h = parseInt(match[1]);
+            const m = parseInt(match[2]);
+            return currentLang === 'ru' ? `${h} ч. ${m} мин.` : `${h}h ${m}m`;
+          }
+          const mins = parseInt(match[1]);
+          if (mins >= 40 && mins <= 400) {
+            const h = Math.floor(mins / 60);
+            const m = mins % 60;
+            return currentLang === 'ru' 
+              ? (h > 0 ? (m > 0 ? `${h} ч. ${m} мин.` : `${h} ч.`) : `${m} мин.`)
+              : (h > 0 ? (m > 0 ? `${h}h ${m}m` : `${h}h`) : `${m}m`);
+          }
+        }
+      }
+      return '';
+    }
+
+    function getPluralSeasons(n) {
+      if (currentLang === 'en') {
+        return n === 1 ? 'season' : 'seasons';
+      }
+      const mod10 = n % 10, mod100 = n % 100;
+      if (mod100 >= 11 && mod100 <= 19) return 'сезонов';
+      if (mod10 === 1) return 'сезон';
+      if (mod10 >= 2 && mod10 <= 4) return 'сезона';
+      return 'сезонов';
+    }
+
+    function extractCreatorFromText(cat, text, def = '') {
+      if (!text) return def;
+      const t = text.replace(/\[\d+\]/g, '');
+      if (cat === 'movie') {
+        const mRu = t.match(/(?:режисс[её]р[а-я]*|постановщик[а-я]*)\s+([А-ЯЁA-Z][а-яёa-z]+(?:\s+[А-ЯЁA-Z][а-яёa-z]+)+)/i);
+        if (mRu) return mRu[1].trim();
+        const mEn = t.match(/(?:directed by|film by)\s+([A-Z][a-z]+(?:\s+[A-Z][a-z]+)+)/i);
+        if (mEn) return mEn[1].trim();
+      } else if (cat === 'game') {
+        const gRu = t.match(/(?:разработанная\s+(?:компанией|студией)?|разработчик[а-я]*[\s—:]+)([A-Za-zА-Яа-я0-9\s«»\-]+?)(?:,|\.|\sдля|\sи\sизданная)/i);
+        if (gRu) return gRu[1].replace(/[«»]/g, '').trim();
+        const gEn = t.match(/(?:developed by)\s+([A-Z0-9][a-zA-Z0-9\s\.\-]+?)(?:,|\.|\sand\spublished|\sfor\s)/i);
+        if (gEn) return gEn[1].trim();
+      } else if (cat === 'anime') {
+        const aRu = t.match(/(?:студии|студией|производства)\s+([A-Za-zА-Яа-я0-9\s«»\-]+?)(?:,|\.|\sрежиссёр)/i);
+        if (aRu) return aRu[1].replace(/[«»]/g, '').trim();
+      }
+      return def;
+    }
+
+    async function syncCloud() {
+      if (!supabaseClient) return;
+      try {
+        const { data } = await supabaseClient.from('items').select('*');
+        if (data && data.length && db) {
+          for (const it of data) {
+            db.transaction('items', 'readwrite').objectStore('items').put({
+              id: it.id, title: it.title, category: it.category, genre: it.genre, rating: it.rating,
+              memory: it.memory, sourceUrl: it.source_url, coverUrl: it.cover_url, dateAdded: it.date_added
+            });
+          }
+        }
+        if (db) {
+          db.transaction('items', 'readonly').objectStore('items').getAll().onsuccess = async e => {
+            for (const it of (e.target.result || [])) {
+              await supabaseClient.from('items').upsert({
+                id: it.id, title: it.title, category: it.category, genre: it.genre, rating: it.rating,
+                memory: it.memory, source_url: it.sourceUrl, cover_url: it.coverUrl, date_added: it.dateAdded
+              });
+            }
+          };
+        }
+      } catch(e){}
+    }
+
+    function handleTitleFocus() {
+      const v = document.getElementById('fTitle').value.trim();
+      if (v.length < 2) showRandomDiscovery();
+    }
+
+    function showRandomDiscovery() {
+      sugs = [...DISCOVERY_POOL].sort(() => 0.5 - Math.random()).slice(0, 6);
+      renderSugs(true);
+    }
+
+    function handleTitleInput(v) {
+      clearTimeout(sTimer);
+      const q = v.trim();
+      if (q.length < 2) { showRandomDiscovery(); return; }
+      document.getElementById('spinner').classList.remove('hidden');
+      sTimer = setTimeout(() => searchMedia(q), 250);
+    }
+
+    function cleanWikiTitle(t) {
+      return (t || '').replace(/\s*\((фильм|художественный\s+фильм|сериал|телесериал|аниме|манга|видеоигра|игра|film|\d{4}\s+film|movie).*?\)/gi, '').trim();
+    }
+
+    async function searchMedia(q) {
+      const cyr = /[\u0400-\u04FF]/.test(q);
+      const res = [];
+
+      // 1. Аниме (AniList)
+      const pAnime = fetch('https://graphql.anilist.co', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+        body: JSON.stringify({
+          query: `query ($q: String) { Page(page: 1, perPage: 6) { media(search: $q, type: ANIME) { title { romaji english native } coverImage { extraLarge large } genres seasonYear episodes duration countryOfOrigin studios(isMain: true) { nodes { name } } } } }`,
+          variables: { q }
+        })
+      }).then(r => r.json()).then(d => {
+        d?.data?.Page?.media?.forEach(m => {
+          const engTitle = m.title.english || m.title.romaji || m.title.native;
+          const romaji = m.title.romaji || m.title.native || '';
+          const epText = m.episodes ? `${m.episodes} ${currentLang==='ru'?'эп.':'ep.'}` : (currentLang==='ru'?'Онгоинг':'Ongoing');
+          const durText = m.duration ? (currentLang==='ru'?`по ~${m.duration} мин.`:`~${m.duration}m/ep`) : '';
+          const metaStr = `Japan • ${epText} ${durText}`.trim();
+
+          res.push({
+            title: engTitle, 
+            ruTitle: '',
+            origTitle: romaji,
+            creator: m.studios?.nodes?.[0]?.name ? `${currentLang==='ru'?'Студия ':'Studio '}${m.studios.nodes[0].name}` : 'Animation Studio',
+            meta: metaStr,
+            cat: 'anime',
+            genre: normalizeGenre(m.genres?.[0], 'anime', engTitle, ''),
+            cover: m.coverImage?.extraLarge || m.coverImage?.large || '',
+            year: m.seasonYear || '', sub: 'ANIME'
+          });
+        });
+      }).catch(()=>{});
+
+      const pAnimeRu = cyr ? fetch(`https://ru.wikipedia.org/w/api.php?action=query&generator=search&gsrsearch=${encodeURIComponent(q + ' (аниме OR манга)')}&gsrlimit=5&prop=pageimages|description|extracts|langlinks&lllang=en&exintro=1&explaintext=1&exsentences=2&pithumbsize=600&pilicense=any&format=json&origin=*`).then(r => r.json()).then(ruW => {
+        if (ruW?.query?.pages) {
+          Object.values(ruW.query.pages).forEach(p => {
+            const d = (p.description || '').toLowerCase();
+            if (d.includes('аниме') || d.includes('манга') || p.title.toLowerCase().includes('аниме')) {
+              const cr = extractCreatorFromText('anime', (p.description || '') + ' ' + (p.extract || ''), 'Аниме-студия');
+              const ruT = cleanWikiTitle(p.title);
+              const enT = p.langlinks?.[0]?.['*'] ? cleanWikiTitle(p.langlinks[0]['*']) : '';
+
+              res.push({
+                title: ruT,
+                ruTitle: ruT,
+                origTitle: enT,
+                creator: cr, 
+                meta: 'Аниме', 
+                cat: 'anime',
+                genre: normalizeGenre('', 'anime', p.title, d),
+                cover: p.thumbnail?.source || '', year: d.match(/\b(19\d\d|20\d\d)\b/)?.[0] || '', sub: 'ANIME'
+              });
+            }
+          });
+        }
+      }).catch(()=>{}) : Promise.resolve();
+
+      // 2. Фильмы
+      const pMovies = Promise.all([
+        jsonp(`https://itunes.apple.com/search?term=${encodeURIComponent(q)}&media=movie&entity=movie&limit=8`),
+        fetch(`https://en.wikipedia.org/w/api.php?action=query&generator=search&gsrsearch=${encodeURIComponent(q + ' film')}&gsrlimit=7&prop=pageimages|description|extracts|langlinks&lllang=ru&exintro=1&explaintext=1&exsentences=2&pithumbsize=600&pilicense=any&format=json&origin=*`).then(r=>r.json()).catch(()=>null),
+        fetch(`https://ru.wikipedia.org/w/api.php?action=query&generator=search&gsrsearch=${encodeURIComponent(q + ' (фильм OR кино)')}&gsrlimit=7&prop=pageimages|description|extracts|langlinks&lllang=en&exintro=1&explaintext=1&exsentences=2&pithumbsize=600&pilicense=any&format=json&origin=*`).then(r=>r.json()).catch(()=>null)
+      ]).then(async ([it, enW, ruW]) => {
+        
+        if (enW?.query?.pages) {
+          Object.values(enW.query.pages).forEach(p => {
+            const d = ((p.description || '') + ' ' + (p.extract || '')).toLowerCase();
+            if ((d.includes('film') || d.includes('movie')) && !d.includes('футболист') && !d.includes('гонщик')) {
+              const enTitle = cleanWikiTitle(p.title);
+              const ruTitle = p.langlinks?.[0]?.['*'] ? cleanWikiTitle(p.langlinks[0]['*']) : '';
+              const cr = extractCreatorFromText('movie', (p.description || '') + ' ' + (p.extract || ''), currentLang==='ru'?'Режиссёр':'Director');
+              const dur = extractDurationFromText(p.extract || p.description);
+
+              res.push({
+                title: currentLang === 'ru' && ruTitle ? ruTitle : enTitle,
+                ruTitle: ruTitle,
+                origTitle: enTitle,
+                creator: cr,
+                meta: dur,
+                cat: 'movie',
+                genre: normalizeGenre('', 'movie', p.title, d),
+                cover: p.thumbnail?.source || '', 
+                year: d.match(/\b(19\d\d|20\d\d)\b/)?.[0] || ''
+              });
+            }
+          });
+        }
+
+        if (ruW?.query?.pages) {
+          Object.values(ruW.query.pages).forEach(p => {
+            const d = ((p.description || '') + ' ' + (p.extract || '')).toLowerCase();
+            if ((d.includes('film') || d.includes('фильм')) && !d.includes('футболист') && !d.includes('гонщик')) {
+              const ruTitle = cleanWikiTitle(p.title);
+              const enTitle = p.langlinks?.[0]?.['*'] ? cleanWikiTitle(p.langlinks[0]['*']) : '';
+              const cr = extractCreatorFromText('movie', (p.description || '') + ' ' + (p.extract || ''), currentLang==='ru'?'Режиссёр':'Director');
+              const dur = extractDurationFromText(p.extract || p.description);
+
+              res.push({
+                title: currentLang === 'en' && enTitle ? enTitle : ruTitle,
+                ruTitle: ruTitle,
+                origTitle: enTitle,
+                creator: cr,
+                meta: dur,
+                cat: 'movie',
+                genre: normalizeGenre('', 'movie', p.title, d),
+                cover: p.thumbnail?.source || '', 
+                year: d.match(/\b(19\d\d|20\d\d)\b/)?.[0] || ''
+              });
+            }
+          });
+        }
+
+        it?.results?.forEach(m => {
+          const dur = formatDuration(m.trackTimeMillis);
+          res.push({
+            title: m.trackName,
+            ruTitle: '',
+            origTitle: m.trackName,
+            creator: m.artistName || (currentLang==='ru'?'Режиссёр':'Director'),
+            meta: dur,
+            cat: 'movie',
+            genre: normalizeGenre(m.primaryGenreName, 'movie', m.trackName, ''),
+            cover: m.artworkUrl100?.replace('100x100bb','800x800bb'), 
+            year: m.releaseDate?.slice(0,4)
+          });
+        });
+      });
+
+      // 3. Сериалы
+      const pSeries = fetch(`https://api.tvmaze.com/search/shows?q=${encodeURIComponent(q)}`)
+        .then(r => r.json())
+        .then(async data => {
+          if (!data || !Array.isArray(data)) return;
+          for (const item of data.slice(0, 5)) {
+            const s = item.show;
+            if (!s) continue;
+
+            let seasonEpMeta = '';
+            try {
+              const seasonsData = await fetch(`https://api.tvmaze.com/shows/${s.id}/seasons`).then(r => r.json());
+              if (Array.isArray(seasonsData) && seasonsData.length > 0) {
+                const sCount = seasonsData.length;
+                const totalEp = seasonsData.reduce((acc, cur) => acc + (cur.episodeOrder || 0), 0);
+                const sText = getPluralSeasons(sCount);
+                seasonEpMeta = totalEp > 0 ? `${sCount} ${sText} • ${totalEp} ${currentLang==='ru'?'эп.':'ep.'}` : `${sCount} ${sText}`;
+              }
+            } catch(e){}
+
+            res.push({
+              title: s.name, 
+              ruTitle: '',
+              origTitle: s.name,
+              creator: s.network?.name || s.webChannel?.name || 'Studio / Network',
+              meta: seasonEpMeta || 'Series',
+              cat: 'series',
+              genre: normalizeGenre(s.genres?.[0], 'series', s.name, ''),
+              cover: s.image?.original || s.image?.medium || '',
+              year: s.premiered?.slice(0, 4) || ''
+            });
+          }
+        }).catch(()=>{});
+
+      // 4. Музыка
+      const pMusic = Promise.all([
+        jsonp(`https://itunes.apple.com/search?term=${encodeURIComponent(q)}&media=music&entity=song&limit=8${cyr?'&country=RU':''}`),
+        jsonp(`https://itunes.apple.com/search?term=${encodeURIComponent(q)}&media=music&entity=album&limit=6${cyr?'&country=RU':''}`),
+        jsonp(`https://api.deezer.com/search?q=${encodeURIComponent(q)}&limit=8&output=jsonp`)
+      ]).then(([s, a, dz]) => {
+        s?.results?.forEach(m => res.push({ title: m.trackName, origTitle: m.collectionName || '', creator: m.artistName, meta: '', cat: 'music', genre: normalizeGenre(m.primaryGenreName, 'music', m.artistName, m.trackName), cover: m.artworkUrl100?.replace('100x100bb','800x800bb'), year: m.releaseDate?.slice(0,4), sub: 'TRACK' }));
+        a?.results?.forEach(m => res.push({ title: m.collectionName, origTitle: m.collectionName, creator: m.artistName, meta: '', cat: 'music', genre: normalizeGenre(m.primaryGenreName, 'music', m.artistName, m.collectionName), cover: m.artworkUrl100?.replace('100x100bb','800x800bb'), year: m.releaseDate?.slice(0,4), sub: 'ALBUM' }));
+        dz?.data?.forEach(m => res.push({ title: m.title, origTitle: m.album?.title || '', creator: m.artist?.name, meta: '', cat: 'music', genre: normalizeGenre('', 'music', m.artist?.name, m.title), cover: m.album?.cover_xl || m.album?.cover_big, sub: 'TRACK' }));
+      });
+
+      // 5. Игры
+      const pGames = Promise.all([
+        fetch(`https://ru.wikipedia.org/w/api.php?action=query&generator=search&gsrsearch=${encodeURIComponent(q + ' (игра OR видеоигра)')}&gsrlimit=6&prop=pageimages|description|extracts|langlinks&lllang=en&exintro=1&explaintext=1&exsentences=2&pithumbsize=600&pilicense=any&format=json&origin=*`).then(r=>r.json()).catch(()=>null),
+        fetch(`https://en.wikipedia.org/w/api.php?action=query&generator=search&gsrsearch=${encodeURIComponent(q + ' "video game"')}&gsrlimit=6&prop=pageimages|description|extracts|langlinks&lllang=ru&exintro=1&explaintext=1&exsentences=2&pithumbsize=600&pilicense=any&format=json&origin=*`).then(r=>r.json()).catch(()=>null)
+      ]).then(([ru, en]) => {
+        const parseG = (pages, isEn) => {
+          if (!pages) return;
+          Object.values(pages).forEach(p => {
+            const d = ((p.description || '') + ' ' + (p.extract || '')).toLowerCase();
+            if (d.includes('game') || d.includes('игр') || p.title.includes('игра')) {
+              const cr = extractCreatorFromText('game', (p.description || '') + ' ' + (p.extract || ''), 'Game Studio');
+              const cleanT = cleanWikiTitle(p.title);
+              const otherT = p.langlinks?.[0]?.['*'] ? cleanWikiTitle(p.langlinks[0]['*']) : '';
+
+              res.push({
+                title: isEn && currentLang === 'ru' && otherT ? otherT : cleanT,
+                ruTitle: isEn ? otherT : cleanT,
+                origTitle: isEn ? cleanT : otherT,
+                creator: cr, 
+                meta: '', 
+                cat: 'game',
+                genre: normalizeGenre('', 'game', p.title, d),
+                cover: p.thumbnail?.source || ''
+              });
+            }
+          });
+        };
+        parseG(ru?.query?.pages, false); parseG(en?.query?.pages, true);
+      });
+
+      await Promise.all([pAnime, pAnimeRu, pMovies, pSeries, pMusic, pGames]);
+
+      const map = new Map();
+      for (const it of res) {
+        const k = ((it.origTitle || it.title).toLowerCase().replace(/^(the|a)\s+/i,'').trim() + '|' + it.cat);
+        if (!map.has(k)) map.set(k, it);
+        else {
+          const ex = map.get(k);
+          if (!ex.cover && it.cover) ex.cover = it.cover;
+          if (!ex.year && it.year) ex.year = it.year;
+          if (!ex.creator && it.creator) ex.creator = it.creator;
+          if ((!ex.ruTitle || ex.title === ex.origTitle) && it.ruTitle) {
+            ex.ruTitle = it.ruTitle;
+            if (currentLang === 'ru') ex.title = it.ruTitle;
+          }
+          if (!ex.origTitle && it.origTitle) ex.origTitle = it.origTitle;
+          if ((!ex.meta || ex.meta.length < it.meta.length) && it.meta) ex.meta = it.meta;
+        }
+      }
+      sugs = Array.from(map.values());
+      document.getElementById('spinner').classList.add('hidden');
+      renderSugs(false);
+    }
+
+    function setSugTab(t) {
+      curSugTab = t;
+      document.querySelectorAll('.s-tab').forEach(b => {
+        b.className = b.dataset.tab === t ? "s-tab px-2.5 py-1 bg-[#ff4f2b] text-black font-bold" : "s-tab px-2.5 py-1 bg-[#1a1a1a] text-[#bfbfbf] border border-[#3c3c3c]";
+      });
+      renderSugList();
+    }
+
+    function renderSugs(isDisc = false) {
+      const counts = { all: sugs.length, anime: sugs.filter(i=>i.cat==='anime').length, movie: sugs.filter(i=>i.cat==='movie').length, series: sugs.filter(i=>i.cat==='series').length, music: sugs.filter(i=>i.cat==='music').length, game: sugs.filter(i=>i.cat==='game').length };
+      ['all','anime','movie','series','music','game'].forEach(k => {
+        const el = document.getElementById(`c-${k}`);
+        if (el) el.textContent = isDisc ? '' : `(${counts[k]})`;
+      });
+      renderSugList(isDisc);
+    }
+
+    function renderSugList(isDisc = false) {
+      const box = document.getElementById('sugBox'), list = document.getElementById('sugList');
+      if (!box || !list) return;
+      list.innerHTML = '';
+      if (isDisc) {
+        const notice = document.createElement('div');
+        notice.className = 'px-3 py-1.5 bg-[#000000] text-[10px] text-[#ff4f2b] flex items-center justify-between border-b border-[#3c3c3c] font-mono-code';
+        notice.innerHTML = `<span>// ${currentLang==='ru'?'РЕКОМЕНДАЦИИ':'SUGGESTED_ENTRIES'}</span><span class="text-[#737373]">${currentLang==='ru'?'ВВОД ДЛЯ ПОИСКА':'TYPE TO SEARCH'}</span>`;
+        list.appendChild(notice);
+      }
+      const filtered = sugs.filter(i => curSugTab === 'all' || i.cat === curSugTab);
+      if (!filtered.length) {
+        list.innerHTML = `<div class="p-4 text-center text-[#737373] font-mono-code text-xs">${currentLang==='ru'?'НИЧЕГО НЕ НАЙДЕНО':'NO_MATCHES_FOUND'}</div>`;
+        box.classList.remove('hidden'); return;
+      }
+      filtered.forEach(it => {
+        const row = document.createElement('div');
+        row.className = "flex items-center gap-3 p-2.5 hover:bg-[#000000] cursor-pointer transition";
+        
+        const showDual = it.origTitle && it.origTitle !== it.title;
+        const mainTitle = it.title;
+        const subTitle = showDual ? ` (${it.origTitle})` : '';
+
+        row.innerHTML = `
+          <div class="w-8 h-11 bg-[#000000] border border-[#3c3c3c] shrink-0 overflow-hidden flex items-center justify-center text-[9px] font-mono-code text-[#737373]">
+            ${it.cover ? `<img src="${it.cover}" referrerpolicy="no-referrer" class="w-full h-full object-cover">` : 'IMG'}
+          </div>
+          <div class="flex-1 min-w-0">
+            <div class="font-medium text-[#f5f5f5] truncate text-xs">
+              ${mainTitle} <span class="text-[#737373] font-normal">${subTitle}</span> ${it.year?`<span class="text-[#737373] font-normal">(${it.year})</span>`:''}
+            </div>
+            <div class="text-[10px] text-[#737373] mt-0.5 truncate">${it.meta ? `<span class="text-white/90 font-mono">${it.meta}</span> • ` : ''}${it.creator ? `${it.creator} • ` : ''}<span class="text-[#ff4f2b]">#${it.genre}</span></div>
+          </div>
+        `;
+        row.onclick = () => {
+          document.getElementById('fTitle').value = it.title;
+          document.getElementById('fCategory').value = it.cat;
+          updateCategoryLabels();
+          document.getElementById('fCreator').value = it.creator || '';
+          document.getElementById('fOrigTitle').value = it.origTitle || '';
+          document.getElementById('fMeta').value = it.meta || '';
+          document.getElementById('fGenre').value = it.genre;
+          if (it.cover) {
+            document.getElementById('fCover').value = it.cover;
+            document.getElementById('cPrev').innerHTML = `<img src="${it.cover}" referrerpolicy="no-referrer" class="w-full h-full object-cover">`;
+          }
+          box.classList.add('hidden');
+        };
+        list.appendChild(row);
+      });
+      box.classList.remove('hidden');
+    }
+
+    async function saveItem(e) {
+      if (e) e.preventDefault();
+      const title = document.getElementById('fTitle').value.trim();
+      if (!title) {
+        alert(currentLang === 'ru' ? 'Пожалуйста, введите название!' : 'Please enter title!');
+        return;
+      }
+
+      const database = db || await initDB();
+      if (!database) {
+        alert(currentLang === 'ru' ? 'Ошибка базы данных.' : 'Database error.');
+        return;
+      }
+
+      const cat = document.getElementById('fCategory').value;
+      const creator = document.getElementById('fCreator').value.trim();
+      const origTitle = document.getElementById('fOrigTitle').value.trim();
+      const meta = document.getElementById('fMeta').value.trim();
+      const userMem = document.getElementById('fMemory').value.trim();
+
+      const packedMem = packMemory(creator, origTitle, meta, userMem);
+
+      const item = {
+        id: editId || Date.now(),
+        title,
+        category: cat,
+        genre: normalizeGenre(document.getElementById('fGenre').value, cat, title, ''),
+        rating: Number(document.getElementById('fRating').value) || 10,
+        memory: packedMem,
+        sourceUrl: document.getElementById('fSource').value.trim(),
+        coverUrl: document.getElementById('fCover').value.trim(),
+        dateAdded: new Date().toLocaleDateString(currentLang === 'ru' ? 'ru-RU' : 'en-US')
+      };
+
+      try {
+        const tx = database.transaction('items', 'readwrite');
+        tx.objectStore('items').put(item);
+        tx.oncomplete = async () => {
+          if (supabaseClient) {
+            try {
+              await supabaseClient.from('items').upsert({
+                id: item.id, title: item.title, category: item.category, genre: item.genre, rating: item.rating,
+                memory: item.memory, source_url: item.sourceUrl, cover_url: item.coverUrl, date_added: item.dateAdded
+              });
+            } catch (err){}
+          }
+          closeModal();
+          await loadItems();
+        };
+      } catch (err) {
+        alert('Error: ' + err.message);
+      }
+    }
+
+    async function loadItems() {
+      const database = db || await initDB();
+      if (!database) return;
+      try {
+        const tx = database.transaction('items', 'readonly');
+        tx.objectStore('items').getAll().onsuccess = e => {
+          allItems = (e.target.result || []).map(parseItemData).reverse();
+          renderGenresBar();
+          renderCards();
+        };
+      } catch (err){}
+    }
+
+    function renderGenresBar() {
+      const gb = document.getElementById('genresBar');
+      if (!gb) return;
+      gb.innerHTML = '';
+      if (curFilter === 'all') { gb.classList.add('hidden'); return; }
+
+      const inCat = allItems.filter(i => i.category === curFilter);
+      const used = new Set();
+      inCat.forEach(i => {
+        if (!i.genre) return;
+        i.genre.split(/[,/]/).forEach(g => {
+          const c = g.replace(/[#]/g, '').trim();
+          if (c && c.length > 1 && !BANNED_GENRES.has(c.toLowerCase())) {
+            used.add(c.toUpperCase());
+          }
+        });
+      });
+
+      const list = Array.from(used);
+      if (!list.length) { gb.classList.add('hidden'); return; }
+      gb.classList.remove('hidden');
+
+      const bAll = document.createElement('button');
+      bAll.className = `font-mono-code text-[11px] uppercase px-3 py-1 transition ${curGenre==='all'?'bg-[#ff4f2b] text-black font-bold':'bg-[#1a1a1a] text-[#737373] border border-[#3c3c3c] hover:text-[#f5f5f5]'}`;
+      bAll.textContent = currentLang === 'ru' ? 'ВСЕ ЖАНРЫ' : 'ALL GENRES';
+      bAll.onclick = () => { curGenre = 'all'; renderGenresBar(); renderCards(); };
+      gb.appendChild(bAll);
+
+      list.forEach(g => {
+        const b = document.createElement('button');
+        const isActive = curGenre.toLowerCase() === g.toLowerCase();
+        b.className = `font-mono-code text-[11px] uppercase px-3 py-1 transition ${isActive?'bg-[#ff4f2b] text-black font-bold':'bg-[#1a1a1a] text-[#bfbfbf] border border-[#3c3c3c] hover:text-[#f5f5f5]'}`;
+        b.textContent = '#' + g;
+        b.onclick = () => {
+          curGenre = (isActive ? 'all' : g);
+          renderGenresBar();
+          renderCards();
+        };
+        gb.appendChild(b);
+      });
+    }
+
+    function renderCards() {
+      const q = document.getElementById('searchInput').value.toLowerCase();
+      const grid = document.getElementById('cardsGrid');
+      if (!grid) return;
+      grid.innerHTML = '';
+      const list = allItems.filter(i => {
+        const mCat = curFilter === 'all' || i.category === curFilter;
+        const mGen = curGenre === 'all' || (i.genre && i.genre.toLowerCase().includes(curGenre.toLowerCase()));
+        const mQ = i.title.toLowerCase().includes(q) || (i.creator && i.creator.toLowerCase().includes(q)) || (i.memory && i.memory.toLowerCase().includes(q)) || (i.origTitle && i.origTitle.toLowerCase().includes(q)) || (i.genre && i.genre.toLowerCase().includes(q));
+        return mCat && mGen && mQ;
+      });
+      const empty = document.getElementById('emptyState');
+      if (empty) empty.classList.toggle('hidden', list.length > 0);
+
+      const catBadges = {
+        anime: currentLang === 'ru' ? 'АНИМЕ' : 'ANIME',
+        movie: currentLang === 'ru' ? 'ФИЛЬМ' : 'MOVIE',
+        series: currentLang === 'ru' ? 'СЕРИАЛ' : 'SERIES',
+        music: currentLang === 'ru' ? 'МУЗЫКА' : 'MUSIC',
+        game: currentLang === 'ru' ? 'ИГРА' : 'GAME'
+      };
+
+      const t = I18N[currentLang];
+
+      list.forEach((i, idx) => {
+        const badge = catBadges[i.category] || 'MEDIA';
+        const numStr = String(idx + 1).padStart(2, '0');
+        const c = document.createElement('div');
+        c.className = "bg-[#000000] border border-[#3c3c3c] hover:border-[#bfbfbf] transition flex flex-col justify-between cursor-pointer group";
+
+        const showDual = i.origTitle && i.origTitle !== i.title;
+        const mainDisplayTitle = (currentLang === 'en' && i.origTitle) ? i.origTitle : i.title;
+        const subDisplayTitle = (currentLang === 'en' && i.origTitle) ? i.title : (showDual ? i.origTitle : '');
+
+        c.innerHTML = `
+          <div onclick="openDetailModal(${i.id})">
+            <div class="h-56 w-full bg-[#1a1a1a] relative overflow-hidden border-b border-[#3c3c3c]">
+              <img src="${i.coverUrl || 'https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?w=500'}" referrerpolicy="no-referrer" class="w-full h-full object-cover">
+              <div class="absolute top-0 left-0 bg-[#000000] border-b border-r border-[#3c3c3c] px-2 py-0.5 font-mono-code text-[10px] text-[#737373]">
+                ${numStr}
+              </div>
+              <div class="absolute top-0 right-0 bg-[#000000] border-b border-l border-[#3c3c3c] px-2 py-0.5 font-mono-code text-[10px] text-[#ff4f2b] font-bold">
+                ★ ${i.rating}
+              </div>
+              <div class="absolute bottom-0 left-0 bg-[#000000] border-t border-r border-[#3c3c3c] px-2.5 py-0.5 font-mono-code text-[10px] text-[#f5f5f5] uppercase tracking-wider">
+                ${badge}
+              </div>
+            </div>
+
+            <div class="p-4 space-y-1.5">
+              <div class="font-mono-code text-[11px] text-[#737373] tracking-wider">
+                ${i.dateAdded} ${i.meta ? `// ${i.meta}` : ''}
+              </div>
+              <h4 class="font-display text-lg text-[#f5f5f5] font-normal leading-snug group-hover:text-[#ff4f2b] transition">
+                ${mainDisplayTitle}
+              </h4>
+              ${subDisplayTitle ? `<p class="font-mono-code text-[11px] text-[#737373] truncate">${subDisplayTitle}</p>` : ''}
+              ${i.creator ? `<p class="font-mono-code text-[11px] text-[#bfbfbf] truncate font-medium pt-0.5">${i.creator}</p>` : ''}
+              <div class="pt-1">
+                <span class="font-mono-code text-[10px] text-[#ff4f2b] uppercase tracking-wider">#${i.genre}</span>
+              </div>
+              ${i.memory ? `<p class="mt-2 text-xs text-[#737373] line-clamp-2 italic border-l border-[#3c3c3c] pl-2">"${i.memory}"</p>` : ''}
+            </div>
+          </div>
+
+          <div class="p-4 pt-0">
+            <div class="flex justify-between items-center font-mono-code text-[11px] border-t border-[#1a1a1a] pt-3 mt-1">
+              <span class="text-[#ff4f2b] group-hover:underline uppercase" onclick="openDetailModal(${i.id})">${t.detailsLink}</span>
+              <div class="flex gap-3">
+                <button type="button" onclick="event.stopPropagation(); openEditModal(${i.id})" class="text-[#737373] hover:text-[#f5f5f5]">${t.edit}</button>
+                <button type="button" onclick="event.stopPropagation(); askDeleteItem(${i.id})" class="text-[#737373] hover:text-[#ff4f2b]">${t.delete}</button>
+              </div>
+            </div>
+          </div>
+        `;
+        grid.appendChild(c);
+      });
+    }
+
+    function openDetailModal(id) {
+      const it = allItems.find(x => x.id === id);
+      if (!it) return;
+
+      const t = I18N[currentLang];
+      const catLabels = {
+        anime: currentLang === 'ru' ? 'АНИМЕ' : 'ANIME',
+        movie: currentLang === 'ru' ? 'ФИЛЬМ' : 'MOVIE',
+        series: currentLang === 'ru' ? 'СЕРИАЛ' : 'SERIES',
+        music: currentLang === 'ru' ? 'МУЗЫКА' : 'MUSIC',
+        game: currentLang === 'ru' ? 'ИГРА' : 'GAME'
+      };
+
+      const creatorConfig = {
+        ru: {
+          anime: 'СТУДИЯ / АВТОР:',
+          movie: 'РЕЖИССЁР:',
+          series: 'СОЗДАТЕЛИ / СТУДИЯ:',
+          music: 'ИСПОЛНИТЕЛЬ:',
+          game: 'РАЗРАБОТЧИК:'
+        },
+        en: {
+          anime: 'STUDIO / AUTHOR:',
+          movie: 'DIRECTOR:',
+          series: 'CREATORS / NETWORK:',
+          music: 'ARTIST:',
+          game: 'DEVELOPER:'
+        }
+      };
+
+      document.getElementById('dCover').src = it.coverUrl || 'https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?w=500';
+      document.getElementById('dBadge').textContent = catLabels[it.category] || 'MEDIA';
+      document.getElementById('dYear').textContent = `${t.dateLogged}: ${it.dateAdded}`;
+      document.getElementById('dRating').textContent = it.rating;
+      
+      const mainTitle = (currentLang === 'en' && it.origTitle) ? it.origTitle : it.title;
+      const subTitle = (currentLang === 'en' && it.origTitle) ? it.title : it.origTitle;
+      
+      document.getElementById('dTitle').textContent = mainTitle;
+      document.getElementById('dOrigSubtitle').textContent = subTitle ? `Оригинал: ${subTitle}` : '';
+
+      const metaRow = document.getElementById('rowMeta');
+      if (it.meta && it.meta.trim().length > 0) {
+        const metaLabel = document.getElementById('dMetaLabel');
+        if (currentLang === 'ru') {
+          if (it.category === 'movie') metaLabel.textContent = 'ХРОНОМЕТРАЖ:';
+          else if (it.category === 'series') metaLabel.textContent = 'СЕЗОНЫ:';
+          else if (it.category === 'anime') metaLabel.textContent = 'ЭПИЗОДЫ:';
+          else metaLabel.textContent = 'СВЕДЕНИЯ:';
+        } else {
+          if (it.category === 'movie') metaLabel.textContent = 'RUNTIME:';
+          else if (it.category === 'series') metaLabel.textContent = 'SEASONS:';
+          else if (it.category === 'anime') metaLabel.textContent = 'EPISODES:';
+          else metaLabel.textContent = 'INFO:';
+        }
+        document.getElementById('dMeta').textContent = it.meta;
+        metaRow.classList.remove('hidden');
+      } else {
+        metaRow.classList.add('hidden');
+      }
+
+      const cRow = document.getElementById('rowCreator');
+      const cDict = creatorConfig[currentLang] || creatorConfig.ru;
+      if (it.creator) {
+        document.getElementById('dCreatorLabel').textContent = cDict[it.category] || 'AUTHOR:';
+        document.getElementById('dCreatorText').textContent = it.creator;
+        cRow.classList.remove('hidden');
+      } else {
+        cRow.classList.add('hidden');
+      }
+
+      document.getElementById('dGenreLabel').textContent = currentLang === 'ru' ? 'ЖАНР:' : 'GENRE:';
+      document.getElementById('dGenre').textContent = '#' + it.genre;
+      document.getElementById('dMemoryLabel').textContent = t.reviewTitle;
+      document.getElementById('dMemory').textContent = it.memory || (currentLang === 'ru' ? 'Заметок пока нет.' : 'No notes yet.');
+
+      const sBox = document.getElementById('dSourceBox');
+      const playText = it.category === 'music' ? t.listen : (it.category === 'game' ? t.play : t.watch);
+      sBox.innerHTML = it.sourceUrl 
+        ? `<a href="${it.sourceUrl}" target="_blank" class="block w-full py-3 bg-[#ff4f2b] hover:bg-[#e0401f] text-black font-mono-code text-xs uppercase font-bold text-center tracking-wider transition">▶ ${playText}</a>`
+        : '';
+
+      document.getElementById('dEditBtn').onclick = () => { closeDetailModal(); openEditModal(it.id); };
+      document.getElementById('dDelBtn').onclick = () => { askDeleteItem(it.id); };
+
+      document.getElementById('cardDetailModal').classList.remove('hidden');
+    }
+
+    function closeDetailModal() { document.getElementById('cardDetailModal').classList.add('hidden'); }
+
+    function openAddModal() {
+      editId = null;
+      document.getElementById('modalTitle').textContent = I18N[currentLang].newEntry;
+      document.getElementById('itemForm').reset();
+      document.getElementById('cPrev').innerHTML = 'IMG';
+      updateCategoryLabels();
+      document.getElementById('itemModal').classList.remove('hidden');
+    }
+
+    function openEditModal(id) {
+      const it = allItems.find(x => x.id === id);
+      if (!it) return;
+      editId = id;
+      document.getElementById('modalTitle').textContent = I18N[currentLang].editEntry;
+      document.getElementById('fTitle').value = it.title || '';
+      document.getElementById('fCategory').value = it.category || 'anime';
+      updateCategoryLabels();
+      document.getElementById('fCreator').value = it.creator || '';
+      document.getElementById('fOrigTitle').value = it.origTitle || '';
+      document.getElementById('fMeta').value = it.meta || '';
+      document.getElementById('fGenre').value = it.genre || '';
+      document.getElementById('fRating').value = it.rating || 10;
+      document.getElementById('fMemory').value = it.memory || '';
+      document.getElementById('fSource').value = it.sourceUrl || '';
+      document.getElementById('fCover').value = it.coverUrl || '';
+      if (it.coverUrl) document.getElementById('cPrev').innerHTML = `<img src="${it.coverUrl}" referrerpolicy="no-referrer" class="w-full h-full object-cover">`;
+      document.getElementById('itemModal').classList.remove('hidden');
+    }
+
+    function closeModal() {
+      document.getElementById('itemModal').classList.add('hidden');
+      document.getElementById('sugBox').classList.add('hidden');
+    }
+
+    // НАДЕЖНОЕ ВСТРОЕННОЕ УДАЛЕНИЕ (БЕЗ СБОЕВ БРАУЗЕРНОГО CONFIRM)
+    function askDeleteItem(id) {
+      itemPendingDeleteId = id;
+      document.getElementById('deleteConfirmModal').classList.remove('hidden');
+    }
+
+    function closeDeleteConfirmModal() {
+      itemPendingDeleteId = null;
+      document.getElementById('deleteConfirmModal').classList.add('hidden');
+    }
+
+    async function executeDelete() {
+      if (!itemPendingDeleteId) return;
+      const targetId = itemPendingDeleteId;
+      closeDeleteConfirmModal();
+      closeDetailModal();
+
+      // Мгновенно убираем из интерфейса
+      allItems = allItems.filter(x => x.id != targetId && String(x.id) !== String(targetId));
+      renderGenresBar();
+      renderCards();
+
+      const database = db || await initDB();
+      if (!database) return;
+
+      const nId = Number(targetId);
+      const sId = String(targetId);
+
+      try {
+        const tx = database.transaction('items', 'readwrite');
+        const store = tx
