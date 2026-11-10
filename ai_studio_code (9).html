@@ -1,0 +1,910 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Library of Memories</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Chivo+Mono:wght@400;500;600&family=Inter:wght@300;400;500&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --orange: #ff4f2b; --black: #000000; --carbon: #1a1a1a;
+      --border: #3c3c3c; --white: #f5f5f5; --steel: #737373;
+    }
+    * { border-radius: 0px !important; box-shadow: none !important; }
+    body { background-color: var(--black); color: var(--white); font-family: 'Inter', sans-serif; -webkit-font-smoothing: antialiased; }
+    .font-mono { font-family: 'Chivo Mono', monospace; }
+    .font-light-title { font-family: 'Inter', sans-serif; font-weight: 300; letter-spacing: -0.02em; }
+    input:focus, select:focus, textarea:focus { outline: none; border-color: var(--orange) !important; }
+    .line-clamp-2 { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+    .no-scrollbar::-webkit-scrollbar { display: none; }
+    .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+  </style>
+</head>
+<body class="selection:bg-[#ff4f2b] selection:text-black min-h-screen pb-16">
+
+  <!-- Шапка -->
+  <header class="bg-[#000000] border-b border-[#3c3c3c] sticky top-0 z-40">
+    <div class="max-w-[1280px] mx-auto px-4 sm:px-8 py-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+      <div class="flex items-center justify-between">
+        <div class="flex items-center gap-2.5">
+          <div class="w-3 h-3 bg-[#ff4f2b]"></div>
+          <span id="siteTitle" class="font-mono text-sm sm:text-base tracking-wider uppercase font-semibold text-[#f5f5f5]">LIBRARY OF MEMORIES</span>
+        </div>
+        <div class="flex items-center gap-2 sm:hidden">
+          <button onclick="toggleLang()" id="langBtnMob" class="bg-[#1a1a1a] border border-[#3c3c3c] text-[#f5f5f5] px-2 py-1 text-xs font-mono font-bold">RU</button>
+          <button onclick="exportBackup()" class="border border-[#3c3c3c] text-[#f5f5f5] px-2 py-1 text-xs font-mono">💾</button>
+          <button onclick="openAddModal()" class="bg-[#ff4f2b] text-black px-3 py-1 text-xs font-mono font-bold">+</button>
+        </div>
+      </div>
+      <div class="flex items-center gap-2.5 w-full sm:w-auto">
+        <input id="searchInput" type="text" placeholder="Поиск..." class="w-full sm:w-72 bg-[#1a1a1a] border border-[#3c3c3c] px-3 py-1.5 text-xs font-mono text-[#f5f5f5] placeholder-[#737373]">
+        <div class="hidden sm:flex items-center gap-2">
+          <button onclick="toggleLang()" id="langBtn" class="bg-[#1a1a1a] border border-[#3c3c3c] hover:border-[#f5f5f5] text-[#f5f5f5] px-3 py-1.5 text-xs font-mono font-bold">RU / EN</button>
+          <button onclick="exportBackup()" id="btnBackup" class="border border-[#3c3c3c] hover:border-[#f5f5f5] text-[#f5f5f5] px-3 py-1.5 text-xs font-mono">БЭКАП</button>
+          <button onclick="openAddModal()" id="btnAdd" class="bg-[#ff4f2b] hover:bg-[#e0401f] text-black px-4 py-1.5 text-xs font-mono font-bold tracking-wider">+ ДОБАВИТЬ</button>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Категории -->
+  <div class="bg-[#000000] border-b border-[#3c3c3c]">
+    <div class="max-w-[1280px] mx-auto px-4 sm:px-8 py-2 flex items-center gap-2 overflow-x-auto no-scrollbar">
+      <button onclick="setFilter('all')" class="cat-btn font-mono text-xs uppercase px-3 py-1 bg-[#ff4f2b] text-black border border-[#ff4f2b]" data-cat="all">ВСЕ</button>
+      <button onclick="setFilter('anime')" class="cat-btn font-mono text-xs uppercase px-3 py-1 bg-[#1a1a1a] text-[#bfbfbf] border border-[#3c3c3c]" data-cat="anime">АНИМЕ</button>
+      <button onclick="setFilter('movie')" class="cat-btn font-mono text-xs uppercase px-3 py-1 bg-[#1a1a1a] text-[#bfbfbf] border border-[#3c3c3c]" data-cat="movie">ФИЛЬМЫ</button>
+      <button onclick="setFilter('series')" class="cat-btn font-mono text-xs uppercase px-3 py-1 bg-[#1a1a1a] text-[#bfbfbf] border border-[#3c3c3c]" data-cat="series">СЕРИАЛЫ</button>
+      <button onclick="setFilter('music')" class="cat-btn font-mono text-xs uppercase px-3 py-1 bg-[#1a1a1a] text-[#bfbfbf] border border-[#3c3c3c]" data-cat="music">МУЗЫКА</button>
+      <button onclick="setFilter('game')" class="cat-btn font-mono text-xs uppercase px-3 py-1 bg-[#1a1a1a] text-[#bfbfbf] border border-[#3c3c3c]" data-cat="game">ИГРЫ</button>
+    </div>
+  </div>
+
+  <!-- Контент -->
+  <main class="max-w-[1280px] mx-auto px-4 sm:px-8 pt-6">
+    <div id="genresBar" class="flex flex-wrap items-center gap-2 mb-6 min-h-[28px]"></div>
+    <div id="cardsGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5"></div>
+    <div id="emptyState" class="hidden text-center py-20 border border-dashed border-[#3c3c3c]">
+      <p id="emptyText" class="font-light-title text-xl text-[#f5f5f5] mb-4">В библиотеке пока нет записей.</p>
+      <button onclick="openAddModal()" id="emptyBtn" class="bg-[#ff4f2b] text-black font-mono text-xs uppercase px-5 py-2 font-bold">+ ДОБАВИТЬ</button>
+    </div>
+  </main>
+
+  <!-- Детальное окно карточки -->
+  <div id="cardDetailModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/95 hidden p-3 sm:p-6 overflow-y-auto">
+    <div class="bg-[#000000] border border-[#3c3c3c] w-full max-w-2xl relative my-auto p-0 flex flex-col sm:flex-row">
+      <button type="button" onclick="closeDetailModal()" class="absolute top-2 right-2 bg-[#1a1a1a] border border-[#3c3c3c] text-white w-7 h-7 flex items-center justify-center font-mono text-xs z-20">✕</button>
+      <div class="w-full sm:w-5/12 h-72 sm:h-auto min-h-[300px] relative bg-[#1a1a1a] border-b sm:border-b-0 sm:border-r border-[#3c3c3c]">
+        <img id="dCover" src="" referrerpolicy="no-referrer" class="w-full h-full object-cover">
+        <div class="absolute bottom-0 inset-x-0 bg-[#000000]/90 p-2.5 border-t border-[#3c3c3c] flex items-center justify-between text-[11px] font-mono">
+          <span id="dBadge" class="text-[#ff4f2b] uppercase font-bold"></span>
+          <span class="text-[#f5f5f5]">★ <span id="dRating" class="text-[#ff4f2b]"></span>/10</span>
+        </div>
+      </div>
+      <div class="p-5 sm:p-6 flex-1 flex flex-col justify-between space-y-4">
+        <div class="space-y-2">
+          <div class="font-mono text-[10px] text-[#737373]" id="dYear"></div>
+          <h2 id="dTitle" class="font-light-title text-xl sm:text-2xl text-white leading-tight"></h2>
+          <div id="dOrigSubtitle" class="font-mono text-[11px] text-[#bfbfbf]"></div>
+          <div class="border-t border-[#3c3c3c] pt-3 space-y-1.5 font-mono text-xs">
+            <div id="rowMeta" class="flex justify-between py-0.5 border-b border-[#1a1a1a]">
+              <span class="text-[#737373]" id="dMetaLabel">ИНФО:</span>
+              <span id="dMeta" class="text-white font-semibold"></span>
+            </div>
+            <div id="rowCreator" class="flex justify-between py-0.5 border-b border-[#1a1a1a]">
+              <span class="text-[#737373]" id="dCreatorLabel">АВТОР:</span>
+              <span id="dCreatorText" class="text-white font-semibold"></span>
+            </div>
+            <div class="flex justify-between py-0.5 border-b border-[#1a1a1a]">
+              <span class="text-[#737373]">ЖАНР:</span>
+              <span id="dGenre" class="text-[#ff4f2b]"></span>
+            </div>
+          </div>
+          <div class="bg-[#1a1a1a] p-3 border border-[#3c3c3c] mt-2">
+            <p id="dMemory" class="text-xs text-[#bfbfbf] italic leading-relaxed"></p>
+          </div>
+        </div>
+        <div class="space-y-2 pt-1">
+          <div id="dSourceBox"></div>
+          <div class="grid grid-cols-2 gap-2">
+            <button id="dEditBtn" class="border border-[#3c3c3c] text-white py-2 text-xs font-mono uppercase">РЕДАКТИРОВАТЬ</button>
+            <button id="dDelBtn" class="border border-[#3c3c3c] text-[#ff4f2b] hover:border-[#ff4f2b] py-2 text-xs font-mono uppercase">УДАЛИТЬ</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Окно удаления (надежное, не зависает) -->
+  <div id="delModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/90 hidden p-4">
+    <div class="bg-[#000000] border border-[#ff4f2b] w-full max-w-xs p-5 text-center space-y-3">
+      <h3 id="delTitle" class="font-light-title text-lg text-white">Удалить запись?</h3>
+      <p id="delDesc" class="font-mono text-xs text-[#bfbfbf]">Запись будет стёрта из памяти и облака.</p>
+      <div class="grid grid-cols-2 gap-2 pt-1">
+        <button onclick="closeDelModal()" id="btnDelCancel" class="border border-[#3c3c3c] text-white py-1.5 text-xs font-mono uppercase">ОТМЕНА</button>
+        <button onclick="confirmDel()" id="btnDelConfirm" class="bg-[#ff4f2b] text-black py-1.5 text-xs font-mono uppercase font-bold">УДАЛИТЬ</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Модалка формы -->
+  <div id="itemModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/90 hidden p-3 sm:p-5 overflow-y-auto">
+    <div class="bg-[#000000] border border-[#3c3c3c] w-full max-w-md p-5 relative my-auto">
+      <button onclick="closeModal()" class="absolute top-3 right-3 text-[#737373] hover:text-white font-mono text-sm">✕</button>
+      <h2 id="modalTitle" class="font-light-title text-lg text-white mb-4">НОВАЯ ЗАПИСЬ</h2>
+      <form id="itemForm" onsubmit="saveItem(event)" class="space-y-3 font-mono text-xs">
+        <div class="relative">
+          <label id="lblTitle" class="block text-[#737373] text-[10px] uppercase mb-1">НАЗВАНИЕ *</label>
+          <input id="fTitle" type="text" autocomplete="off" required placeholder="Hunt, Интерстеллар, Radiohead..." class="w-full bg-[#1a1a1a] border border-[#3c3c3c] px-3 py-2 text-white" onfocus="handleTitleFocus()" oninput="handleTitleInput(this.value)">
+          <div id="sugBox" class="absolute left-0 right-0 top-full mt-1 bg-[#1a1a1a] border border-[#3c3c3c] z-50 hidden flex flex-col">
+            <div class="flex gap-1 p-1 bg-[#000000] border-b border-[#3c3c3c] text-[10px] overflow-x-auto no-scrollbar">
+              <button type="button" onclick="setSugTab('all')" class="s-tab px-2 py-0.5 bg-[#ff4f2b] text-black font-bold" data-tab="all">ВСЕ</button>
+              <button type="button" onclick="setSugTab('anime')" class="s-tab px-2 py-0.5 bg-[#1a1a1a] text-[#bfbfbf]" data-tab="anime">АНИМЕ</button>
+              <button type="button" onclick="setSugTab('movie')" class="s-tab px-2 py-0.5 bg-[#1a1a1a] text-[#bfbfbf]" data-tab="movie">КИНО</button>
+              <button type="button" onclick="setSugTab('series')" class="s-tab px-2 py-0.5 bg-[#1a1a1a] text-[#bfbfbf]" data-tab="series">СЕРИАЛЫ</button>
+              <button type="button" onclick="setSugTab('music')" class="s-tab px-2 py-0.5 bg-[#1a1a1a] text-[#bfbfbf]" data-tab="music">МУЗЫКА</button>
+              <button type="button" onclick="setSugTab('game')" class="s-tab px-2 py-0.5 bg-[#1a1a1a] text-[#bfbfbf]" data-tab="game">ИГРЫ</button>
+            </div>
+            <div id="sugList" class="overflow-y-auto max-h-48 divide-y divide-[#3c3c3c]"></div>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-2">
+          <div>
+            <label class="block text-[#737373] text-[10px] uppercase mb-1">КАТЕГОРИЯ</label>
+            <select id="fCategory" class="w-full bg-[#1a1a1a] border border-[#3c3c3c] px-2.5 py-1.5 text-white" onchange="updateCatLabels()">
+              <option value="anime">Аниме</option>
+              <option value="movie">Фильм</option>
+              <option value="series">Сериал</option>
+              <option value="music">Музыка</option>
+              <option value="game">Игра</option>
+            </select>
+          </div>
+          <div>
+            <label id="lblCreator" class="block text-[#737373] text-[10px] uppercase mb-1">АВТОР / РЕЖИССЁР</label>
+            <input id="fCreator" type="text" placeholder="Автоматически..." class="w-full bg-[#1a1a1a] border border-[#3c3c3c] px-2.5 py-1.5 text-white">
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-2">
+          <div>
+            <label class="block text-[#737373] text-[10px] uppercase mb-1">ОРИГИНАЛЬНОЕ ИМЯ</label>
+            <input id="fOrigTitle" type="text" placeholder="The Hunt, Cowboy Bebop..." class="w-full bg-[#1a1a1a] border border-[#3c3c3c] px-2.5 py-1.5 text-white">
+          </div>
+          <div>
+            <label id="lblMeta" class="block text-[#737373] text-[10px] uppercase mb-1">ДЛИТЕЛЬНОСТЬ / СЕЗОНЫ</label>
+            <input id="fMeta" type="text" placeholder="1 ч. 55 мин. / 5 сезонов..." class="w-full bg-[#1a1a1a] border border-[#3c3c3c] px-2.5 py-1.5 text-white">
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-2">
+          <div>
+            <label class="block text-[#737373] text-[10px] uppercase mb-1">ЖАНР / ТЕГ</label>
+            <input id="fGenre" type="text" placeholder="Драма, Рок, RPG..." class="w-full bg-[#1a1a1a] border border-[#3c3c3c] px-2.5 py-1.5 text-white">
+          </div>
+          <div>
+            <label class="block text-[#737373] text-[10px] uppercase mb-1">ОЦЕНКА (1-10)</label>
+            <input id="fRating" type="number" min="1" max="10" value="10" class="w-full bg-[#1a1a1a] border border-[#3c3c3c] px-2.5 py-1.5 text-white">
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-[#737373] text-[10px] uppercase mb-1">ОБЛОЖКА (URL)</label>
+          <div class="flex gap-1.5">
+            <input id="fCover" type="text" placeholder="https://..." class="w-full bg-[#1a1a1a] border border-[#3c3c3c] px-2.5 py-1.5 text-white">
+            <div id="cPrev" class="w-7 h-7 bg-[#1a1a1a] border border-[#3c3c3c] shrink-0 flex items-center justify-center text-[9px] text-[#737373]">IMG</div>
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-[#ff4f2b] text-[10px] uppercase mb-1">ВОСПОМИНАНИЯ / РЕЦЕНЗИЯ</label>
+          <textarea id="fMemory" rows="2" placeholder="Эмоции, заметки..." class="w-full bg-[#1a1a1a] border border-[#3c3c3c] p-2 text-white"></textarea>
+        </div>
+
+        <div>
+          <label class="block text-[#737373] text-[10px] uppercase mb-1">ИСТОЧНИК / СМОТРЕТЬ</label>
+          <input id="fSource" type="text" placeholder="https://..." class="w-full bg-[#1a1a1a] border border-[#3c3c3c] px-2.5 py-1.5 text-white">
+        </div>
+
+        <div class="flex justify-end gap-2 pt-2 border-t border-[#3c3c3c]">
+          <button type="button" onclick="closeModal()" id="btnCancel" class="px-3 py-1.5 text-[#737373] uppercase hover:text-white">ОТМЕНА</button>
+          <button type="submit" id="btnSubmit" class="bg-[#ff4f2b] text-black px-4 py-1.5 font-bold uppercase tracking-wider">СОХРАНИТЬ</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    const MASTER_DB = 'LibraryOfMemories_Main';
+    let db = null, allItems = [], curFilter = 'all', curGenre = 'all', editId = null, sTimer = null, sugs = [], curSugTab = 'all';
+    let delTargetId = null;
+
+    let currentLang = localStorage.getItem('lib_lang') || 'ru';
+
+    const T = {
+      ru: {
+        title: 'LIBRARY OF MEMORIES', search: 'Поиск...', backup: 'БЭКАП', add: '+ ДОБАВИТЬ',
+        all: 'ВСЕ', anime: 'АНИМЕ', movie: 'ФИЛЬМЫ', series: 'СЕРИАЛЫ', music: 'МУЗЫКА', game: 'ИГРЫ',
+        empty: 'В библиотеке пока нет записей.', edit: 'РЕДАКТИРОВАТЬ', del: 'УДАЛИТЬ', cancel: 'ОТМЕНА', save: 'СОХРАНИТЬ',
+        delT: 'Удалить запись?', delD: 'Запись будет стёрта из памяти и облака.',
+        watch: 'СМОТРЕТЬ', listen: 'СЛУШАТЬ', play: 'ИГРАТЬ'
+      },
+      en: {
+        title: 'LIBRARY OF MEMORIES', search: 'Search...', backup: 'BACKUP', add: '+ ADD',
+        all: 'ALL', anime: 'ANIME', movie: 'MOVIES', series: 'SERIES', music: 'MUSIC', game: 'GAMES',
+        empty: 'No records found.', edit: 'EDIT', del: 'DELETE', cancel: 'CANCEL', save: 'SAVE',
+        delT: 'Delete record?', delD: 'Record will be purged from storage and cloud.',
+        watch: 'WATCH', listen: 'LISTEN', play: 'PLAY'
+      }
+    };
+
+    function toggleLang() {
+      currentLang = currentLang === 'ru' ? 'en' : 'ru';
+      localStorage.setItem('lib_lang', currentLang);
+      applyLanguage();
+    }
+
+    function applyLanguage() {
+      const t = T[currentLang];
+      document.getElementById('langBtn').textContent = currentLang === 'ru' ? 'RU / EN' : 'EN / RU';
+      document.getElementById('langBtnMob').textContent = currentLang.toUpperCase();
+      document.getElementById('siteTitle').textContent = t.title;
+      document.getElementById('searchInput').placeholder = t.search;
+      document.getElementById('btnBackup').textContent = t.backup;
+      document.getElementById('btnAdd').textContent = t.add;
+      document.getElementById('emptyText').textContent = t.empty;
+      document.getElementById('emptyBtn').textContent = t.add;
+      document.getElementById('btnCancel').textContent = t.cancel;
+      document.getElementById('btnSubmit').textContent = t.save;
+      document.getElementById('delTitle').textContent = t.delT;
+      document.getElementById('delDesc').textContent = t.delD;
+      document.getElementById('btnDelCancel').textContent = t.cancel;
+      document.getElementById('btnDelConfirm').textContent = t.del;
+
+      document.querySelectorAll('.cat-btn').forEach(b => {
+        const c = b.dataset.cat;
+        if (t[c]) b.textContent = t[c];
+      });
+
+      updateCatLabels();
+      renderGenresBar();
+      renderCards();
+    }
+
+    const SB_URL = 'https://zwlvkxieirgizyyzpyxd.supabase.co';
+    const SB_KEY = 'sb_publishable_s4c5cypmhF6GXCoWeP3SQA_KnnnZCeC';
+    let supabaseClient = null;
+    try { if (window.supabase) supabaseClient = window.supabase.createClient(SB_URL, SB_KEY); } catch(e){}
+
+    const BANNED_GENRES = new Set(['видеоигра','видеоигры','игра','игры','game','games','музыка','песня','трек','music','song','альбом','фильм','фильмы','кино','movie','film','сериал','сериалы','series','аниме','anime','разное']);
+
+    function updateCatLabels() {
+      const cat = document.getElementById('fCategory').value;
+      const lblC = document.getElementById('lblCreator'), lblM = document.getElementById('lblMeta');
+      if (currentLang === 'ru') {
+        lblC.textContent = cat === 'movie' ? 'РЕЖИССЁР' : (cat === 'anime' ? 'СТУДИЯ / АВТОР' : (cat === 'music' ? 'ИСПОЛНИТЕЛЬ' : (cat === 'game' ? 'РАЗРАБОТЧИК' : 'СОЗДАТЕЛИ')));
+        lblM.textContent = cat === 'movie' ? 'ХРОНОМЕТРАЖ' : (cat === 'series' ? 'СЕЗОНЫ И СЕРИИ' : (cat === 'anime' ? 'ЭПИЗОДЫ' : 'ИНФОРМАЦИЯ'));
+      } else {
+        lblC.textContent = cat === 'movie' ? 'DIRECTOR' : (cat === 'anime' ? 'STUDIO' : (cat === 'music' ? 'ARTIST' : (cat === 'game' ? 'DEVELOPER' : 'CREATOR')));
+        lblM.textContent = cat === 'movie' ? 'RUNTIME' : (cat === 'series' ? 'SEASONS' : (cat === 'anime' ? 'EPISODES' : 'INFO'));
+      }
+    }
+
+    function jsonp(url) {
+      return new Promise(res => {
+        const cb = 'cb_' + Math.random().toString(36).slice(2) + '_' + Date.now();
+        const s = document.createElement('script');
+        window[cb] = d => { s.remove(); delete window[cb]; res(d); };
+        s.onerror = () => { s.remove(); delete window[cb]; res(null); };
+        s.src = url + (url.includes('?') ? '&' : '?') + 'callback=' + cb;
+        document.body.appendChild(s);
+        setTimeout(() => { s.remove(); delete window[cb]; res(null); }, 4000);
+      });
+    }
+
+    function initDB() {
+      return new Promise(res => {
+        if (db) return res(db);
+        try {
+          const req = indexedDB.open(MASTER_DB, 1);
+          req.onupgradeneeded = e => {
+            const d = e.target.result;
+            if (!d.objectStoreNames.contains('items')) d.createObjectStore('items', { keyPath: 'id' });
+          };
+          req.onsuccess = e => { db = e.target.result; res(db); };
+          req.onerror = () => res(null);
+          req.onblocked = () => res(null);
+        } catch(e) { res(null); }
+      });
+    }
+
+    async function recoverOld() {
+      if (!db) return;
+      const names = ['LibraryOfEverythingDB','LibraryOfEverything_V3','LibraryOfEverything_V5','LibraryOfEverything_V7','LibraryOfEverything_V9','LibraryOfEverything_V10','LibraryOfEverything_V11'];
+      for (const n of names) {
+        await new Promise(r => {
+          const timer = setTimeout(r, 400);
+          try {
+            const req = indexedDB.open(n);
+            req.onsuccess = e => {
+              const old = e.target.result;
+              if (old.objectStoreNames.contains('items')) {
+                old.transaction('items','readonly').objectStore('items').getAll().onsuccess = ev => {
+                  const list = ev.target.result || [];
+                  if (list.length && db) {
+                    const tx = db.transaction('items','readwrite');
+                    list.forEach(it => { if (it && (it.id || it.title)) tx.objectStore('items').put(it); });
+                  }
+                  old.close(); clearTimeout(timer); r();
+                };
+              } else { old.close(); clearTimeout(timer); r(); }
+            };
+            req.onerror = () => { clearTimeout(timer); r(); };
+            req.onblocked = () => { clearTimeout(timer); r(); };
+          } catch(err){ clearTimeout(timer); r(); }
+        });
+      }
+    }
+
+    function packMemory(c, o, m, n) { return JSON.stringify({ c: c || '', o: o || '', m: m || '', n: n || '' }); }
+    function parseItemData(raw) {
+      const str = raw.memory || '';
+      let c = '', o = '', m = '', n = str;
+      if (str.startsWith('{') && str.endsWith('}')) {
+        try { const p = JSON.parse(str); c = p.c || ''; o = p.o || ''; m = p.m || ''; n = p.n || ''; } catch(e){}
+      } else if (str.startsWith('[') && str.includes(']')) {
+        const end = str.indexOf(']'); c = str.slice(1, end).trim(); n = str.slice(end + 1).trim();
+      }
+      if (c && raw.title && c.endsWith(raw.title)) c = c.replace(raw.title, '').trim();
+      return { ...raw, creator: c, origTitle: o, meta: m, memory: n, genre: normalizeGenre(raw.genre, raw.category, raw.title, '') };
+    }
+
+    function normalizeGenre(gRaw, cat, title = '', desc = '') {
+      let g = (gRaw || '').replace(/[#]/g, '').trim();
+      if (!g || BANNED_GENRES.has(g.toLowerCase())) {
+        const t = (title + ' ' + desc).toLowerCase();
+        if (cat === 'game') return t.includes('rpg')?'RPG':(t.includes('shoot')||t.includes('шут')?'ШУТЕР':(t.includes('horr')||t.includes('хор')?'ХОРРОР':'ЭКШЕН'));
+        if (cat === 'music') return t.includes('metal')?'МЕТАЛ':(t.includes('rap')||t.includes('рэп')?'РЭП':(t.includes('elect')?'ЭЛЕКТРОНИКА':'РОК'));
+        if (cat === 'movie') return t.includes('sci-fi')||t.includes('фант')?'ФАНТАСТИКА':(t.includes('comed')||t.includes('ком')?'КОМЕДИЯ':(t.includes('act')||t.includes('боев')?'БОЕВИК':'ДРАМА'));
+        if (cat === 'anime') return t.includes('isekai')?'ИСЕКАЙ':(t.includes('mecha')?'МЕХА':'СЁНЭН');
+        return 'ДРАМА';
+      }
+      return g.toUpperCase();
+    }
+
+    function formatDuration(ms) {
+      if (!ms || typeof ms !== 'number' || ms < 60000) return '';
+      const mins = Math.round(ms / 60000), h = Math.floor(mins / 60), m = mins % 60;
+      return currentLang === 'ru' ? (h > 0 ? (m > 0 ? `${h} ч. ${m} мин.` : `${h} ч.`) : `${m} мин.`) : (h > 0 ? (m > 0 ? `${h}h ${m}m` : `${h}h`) : `${m}m`);
+    }
+
+    function extractDuration(text) {
+      if (!text) return '';
+      const m = text.match(/(?:длительность|хронометраж|running time)\D*?(\d{2,3})\s*(?:мин|min)/i) || text.match(/\b(\d{2,3})\s*(?:минут|minutes)\b/i);
+      if (m) {
+        const mins = parseInt(m[1]);
+        if (mins >= 40 && mins <= 400) {
+          const h = Math.floor(mins / 60), min = mins % 60;
+          return currentLang === 'ru' ? (h > 0 ? `${h} ч. ${min} мин.` : `${min} мин.`) : (h > 0 ? `${h}h ${min}m` : `${min}m`);
+        }
+      }
+      return '';
+    }
+
+    async function syncCloud() {
+      if (!supabaseClient || !db) return;
+      try {
+        const { data } = await supabaseClient.from('items').select('*');
+        if (data?.length) {
+          const tx = db.transaction('items', 'readwrite');
+          data.forEach(it => tx.objectStore('items').put({
+            id: it.id, title: it.title, category: it.category, genre: it.genre, rating: it.rating,
+            memory: it.memory, sourceUrl: it.source_url, coverUrl: it.cover_url, dateAdded: it.date_added
+          }));
+        }
+        db.transaction('items', 'readonly').objectStore('items').getAll().onsuccess = async e => {
+          for (const it of (e.target.result || [])) {
+            await supabaseClient.from('items').upsert({
+              id: it.id, title: it.title, category: it.category, genre: it.genre, rating: it.rating,
+              memory: it.memory, source_url: it.sourceUrl, cover_url: it.coverUrl, date_added: it.dateAdded
+            });
+          }
+        };
+      } catch(e){}
+    }
+
+    function handleTitleFocus() {
+      if (document.getElementById('fTitle').value.trim().length < 2) {
+        sugs = [
+          { title: 'Ковбой Бибоп', origTitle: 'Cowboy Bebop', cat: 'anime', creator: 'Студия Sunrise', meta: '26 эп.', genre: 'ФАНТАСТИКА', cover: 'https://images.unsplash.com/photo-1578632767115-351597cf2477?w=500' },
+          { title: 'Охота', origTitle: 'The Hunt (Jagten)', cat: 'movie', creator: 'Томас Винтерберг', meta: '1 ч. 55 мин.', genre: 'ДРАМА', cover: 'https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?w=500' },
+          { title: 'Интерстеллар', origTitle: 'Interstellar', cat: 'movie', creator: 'Кристофер Нолан', meta: '2 ч. 49 мин.', genre: 'ФАНТАСТИКА', cover: 'https://images.unsplash.com/photo-1451187580459-43490279c0fa?w=500' },
+          { title: 'Во все тяжкие', origTitle: 'Breaking Bad', cat: 'series', creator: 'Винс Гиллиган', meta: '5 сезонов • 62 эп.', genre: 'КРИМИНАЛ', cover: 'https://images.unsplash.com/photo-1522869635100-9f4c5e86aa37?w=500' }
+        ];
+        renderSugs(true);
+      }
+    }
+
+    function handleTitleInput(v) {
+      clearTimeout(sTimer);
+      const q = v.trim();
+      if (q.length < 2) { handleTitleFocus(); return; }
+      sTimer = setTimeout(() => searchMedia(q), 250);
+    }
+
+    function cleanW(t) { return (t || '').replace(/\s*\((фильм|сериал|аниме|игра|film|\d{4}\s+film).*?\)/gi, '').trim(); }
+
+    async function searchMedia(q) {
+      const cyr = /[\u0400-\u04FF]/.test(q);
+      const res = [];
+
+      // 1. Аниме (AniList)
+      const pAnime = fetch('https://graphql.anilist.co', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          query: `query ($q: String) { Page(page: 1, perPage: 6) { media(search: $q, type: ANIME) { title { romaji english native } coverImage { extraLarge large } genres seasonYear episodes duration studios(isMain: true) { nodes { name } } } } }`,
+          variables: { q }
+        })
+      }).then(r => r.json()).then(d => {
+        d?.data?.Page?.media?.forEach(m => {
+          const t = m.title.english || m.title.romaji || m.title.native;
+          res.push({
+            title: t, origTitle: m.title.romaji || '', creator: m.studios?.nodes?.[0]?.name ? 'Студия ' + m.studios.nodes[0].name : '',
+            meta: `${m.episodes ? m.episodes + ' эп.' : ''} ${m.duration ? 'по ~' + m.duration + ' мин.' : ''}`.trim(),
+            cat: 'anime', genre: normalizeGenre(m.genres?.[0], 'anime', t), cover: m.coverImage?.extraLarge || m.coverImage?.large, year: m.seasonYear
+          });
+        });
+      }).catch(()=>{});
+
+      // 2. Фильмы (iTunes + Wiki EN/RU с langlinks)
+      const pMovies = Promise.all([
+        jsonp(`https://itunes.apple.com/search?term=${encodeURIComponent(q)}&media=movie&entity=movie&limit=7`),
+        fetch(`https://en.wikipedia.org/w/api.php?action=query&generator=search&gsrsearch=${encodeURIComponent(q + ' film')}&gsrlimit=6&prop=pageimages|description|extracts|langlinks&lllang=ru&exintro=1&explaintext=1&exsentences=2&pithumbsize=600&pilicense=any&format=json&origin=*`).then(r=>r.json()).catch(()=>null),
+        fetch(`https://ru.wikipedia.org/w/api.php?action=query&generator=search&gsrsearch=${encodeURIComponent(q + ' (фильм OR кино)')}&gsrlimit=6&prop=pageimages|description|extracts|langlinks&lllang=en&exintro=1&explaintext=1&exsentences=2&pithumbsize=600&pilicense=any&format=json&origin=*`).then(r=>r.json()).catch(()=>null)
+      ]).then(([it, enW, ruW]) => {
+        enW?.query?.pages && Object.values(enW.query.pages).forEach(p => {
+          const d = (p.description || '').toLowerCase();
+          if ((d.includes('film') || d.includes('movie')) && !d.includes('футболист')) {
+            const enT = cleanW(p.title), ruT = p.langlinks?.[0]?.['*'] ? cleanW(p.langlinks[0]['*']) : '';
+            res.push({
+              title: currentLang === 'ru' && ruT ? ruT : enT, origTitle: enT, ruTitle: ruT,
+              creator: (p.extract?.match(/(?:directed by|film by)\s+([A-Z][a-z]+(?:\s+[A-Z][a-z]+)+)/i)?.[1]) || '',
+              meta: extractDuration(p.extract || p.description), cat: 'movie', genre: normalizeGenre('', 'movie', p.title, d),
+              cover: p.thumbnail?.source || '', year: d.match(/\b(19\d\d|20\d\d)\b/)?.[0] || ''
+            });
+          }
+        });
+
+        ruW?.query?.pages && Object.values(ruW.query.pages).forEach(p => {
+          const d = (p.description || '').toLowerCase();
+          if ((d.includes('фильм') || d.includes('кино')) && !d.includes('футболист')) {
+            const ruT = cleanW(p.title), enT = p.langlinks?.[0]?.['*'] ? cleanW(p.langlinks[0]['*']) : '';
+            res.push({
+              title: currentLang === 'en' && enT ? enT : ruT, origTitle: enT, ruTitle: ruT,
+              creator: (p.extract?.match(/(?:режисс[её]р[а-я]*)\s+([А-ЯЁA-Z][а-яёa-z]+(?:\s+[А-ЯЁA-Z][а-яёa-z]+)+)/i)?.[1]) || '',
+              meta: extractDuration(p.extract || p.description), cat: 'movie', genre: normalizeGenre('', 'movie', p.title, d),
+              cover: p.thumbnail?.source || '', year: d.match(/\b(19\d\d|20\d\d)\b/)?.[0] || ''
+            });
+          }
+        });
+
+        it?.results?.forEach(m => {
+          res.push({
+            title: m.trackName, origTitle: m.trackName, creator: m.artistName || '',
+            meta: formatDuration(m.trackTimeMillis), cat: 'movie', genre: normalizeGenre(m.primaryGenreName, 'movie', m.trackName),
+            cover: m.artworkUrl100?.replace('100x100bb','800x800bb'), year: m.releaseDate?.slice(0,4)
+          });
+        });
+      });
+
+      // 3. Сериалы (TVMaze)
+      const pSeries = fetch(`https://api.tvmaze.com/search/shows?q=${encodeURIComponent(q)}`).then(r => r.json()).then(async data => {
+        if (!data?.length) return;
+        for (const i of data.slice(0, 4)) {
+          const s = i.show; if (!s) continue;
+          let sm = 'Сериал';
+          try {
+            const sData = await fetch(`https://api.tvmaze.com/shows/${s.id}/seasons`).then(r => r.json());
+            if (sData?.length) {
+              const sc = sData.length, ep = sData.reduce((a,c) => a + (c.episodeOrder || 0), 0);
+              sm = `${sc} сезон${sc>1?'а':''} • ${ep} эп.`;
+            }
+          } catch(e){}
+          res.push({ title: s.name, origTitle: s.name, creator: s.network?.name || s.webChannel?.name || '', meta: sm, cat: 'series', genre: normalizeGenre(s.genres?.[0], 'series', s.name), cover: s.image?.original || s.image?.medium, year: s.premiered?.slice(0,4) });
+        }
+      }).catch(()=>{});
+
+      // 4. Музыка
+      const pMusic = Promise.all([
+        jsonp(`https://itunes.apple.com/search?term=${encodeURIComponent(q)}&media=music&entity=song&limit=6${cyr?'&country=RU':''}`),
+        jsonp(`https://itunes.apple.com/search?term=${encodeURIComponent(q)}&media=music&entity=album&limit=4${cyr?'&country=RU':''}`)
+      ]).then(([s, a]) => {
+        s?.results?.forEach(m => res.push({ title: m.trackName, origTitle: m.collectionName, creator: m.artistName, cat: 'music', genre: normalizeGenre(m.primaryGenreName, 'music', m.artistName), cover: m.artworkUrl100?.replace('100x100bb','800x800bb'), year: m.releaseDate?.slice(0,4) }));
+        a?.results?.forEach(m => res.push({ title: m.collectionName, origTitle: m.collectionName, creator: m.artistName, cat: 'music', genre: normalizeGenre(m.primaryGenreName, 'music', m.artistName), cover: m.artworkUrl100?.replace('100x100bb','800x800bb'), year: m.releaseDate?.slice(0,4) }));
+      });
+
+      // 5. Игры
+      const pGames = fetch(`https://ru.wikipedia.org/w/api.php?action=query&generator=search&gsrsearch=${encodeURIComponent(q + ' (игра OR видеоигра)')}&gsrlimit=5&prop=pageimages|description|extracts&exintro=1&explaintext=1&exsentences=2&pithumbsize=600&pilicense=any&format=json&origin=*`).then(r => r.json()).then(w => {
+        w?.query?.pages && Object.values(w.query.pages).forEach(p => {
+          const d = (p.description || '').toLowerCase();
+          if (d.includes('игра') || d.includes('game')) {
+            const cr = (p.extract?.match(/(?:разработанная|разработчик[а-я]*)\s+([A-Za-zА-Яа-я0-9\s«»\-]+?)(?:,|\.|\sдля)/i)?.[1]?.replace(/[«»]/g, '')) || '';
+            res.push({ title: cleanW(p.title), origTitle: p.title, creator: cr, cat: 'game', genre: normalizeGenre('', 'game', p.title, d), cover: p.thumbnail?.source || '' });
+          }
+        });
+      }).catch(()=>{});
+
+      await Promise.all([pAnime, pMovies, pSeries, pMusic, pGames]);
+
+      const map = new Map();
+      for (const it of res) {
+        const k = ((it.origTitle || it.title).toLowerCase().replace(/^(the|a)\s+/i,'').trim() + '|' + it.cat);
+        if (!map.has(k)) map.set(k, it);
+        else {
+          const ex = map.get(k);
+          if (!ex.cover && it.cover) ex.cover = it.cover;
+          if (!ex.year && it.year) ex.year = it.year;
+          if (!ex.creator && it.creator) ex.creator = it.creator;
+          if ((!ex.ruTitle || ex.title === ex.origTitle) && it.ruTitle) {
+            ex.ruTitle = it.ruTitle;
+            if (currentLang === 'ru') ex.title = it.ruTitle;
+          }
+          if ((!ex.meta || ex.meta.length < it.meta.length) && it.meta) ex.meta = it.meta;
+        }
+      }
+      sugs = Array.from(map.values());
+      renderSugs(false);
+    }
+
+    function setSugTab(t) {
+      curSugTab = t;
+      document.querySelectorAll('.s-tab').forEach(b => {
+        b.className = b.dataset.tab === t ? "s-tab px-2 py-0.5 bg-[#ff4f2b] text-black font-bold" : "s-tab px-2 py-0.5 bg-[#1a1a1a] text-[#bfbfbf]";
+      });
+      renderSugList();
+    }
+
+    function renderSugs(isDisc = false) { renderSugList(isDisc); }
+
+    function renderSugList(isDisc = false) {
+      const box = document.getElementById('sugBox'), list = document.getElementById('sugList');
+      if (!box || !list) return;
+      list.innerHTML = '';
+      const filtered = sugs.filter(i => curSugTab === 'all' || i.cat === curSugTab);
+      if (!filtered.length) {
+        list.innerHTML = `<div class="p-3 text-center text-[#737373] font-mono text-xs">НИЧЕГО НЕ НАЙДЕНО</div>`;
+        box.classList.remove('hidden'); return;
+      }
+      filtered.forEach(it => {
+        const row = document.createElement('div');
+        row.className = "flex items-center gap-2.5 p-2 hover:bg-[#000000] cursor-pointer transition";
+        row.innerHTML = `
+          <div class="w-7 h-9 bg-black border border-[#3c3c3c] shrink-0 overflow-hidden flex items-center justify-center text-[8px] font-mono text-[#737373]">
+            ${it.cover ? `<img src="${it.cover}" referrerpolicy="no-referrer" class="w-full h-full object-cover">` : 'IMG'}
+          </div>
+          <div class="flex-1 min-w-0">
+            <div class="text-[#f5f5f5] truncate text-xs font-medium">${it.title} ${it.origTitle&&it.origTitle!==it.title?`<span class="text-[#737373]">(${it.origTitle})</span>`:''}</div>
+            <div class="text-[10px] text-[#737373] truncate">${it.meta?`${it.meta} • `:''}${it.creator?`${it.creator} • `:''}<span class="text-[#ff4f2b]">#${it.genre}</span></div>
+          </div>
+        `;
+        row.onclick = () => {
+          document.getElementById('fTitle').value = it.title;
+          document.getElementById('fCategory').value = it.cat;
+          updateCatLabels();
+          document.getElementById('fCreator').value = it.creator || '';
+          document.getElementById('fOrigTitle').value = it.origTitle || '';
+          document.getElementById('fMeta').value = it.meta || '';
+          document.getElementById('fGenre').value = it.genre;
+          if (it.cover) {
+            document.getElementById('fCover').value = it.cover;
+            document.getElementById('cPrev').innerHTML = `<img src="${it.cover}" referrerpolicy="no-referrer" class="w-full h-full object-cover">`;
+          }
+          box.classList.add('hidden');
+        };
+        list.appendChild(row);
+      });
+      box.classList.remove('hidden');
+    }
+
+    async function saveItem(e) {
+      e.preventDefault();
+      const title = document.getElementById('fTitle').value.trim();
+      if (!title) return alert('Введите название!');
+
+      const database = db || await initDB();
+      if (!database) return alert('Ошибка базы данных.');
+
+      const cat = document.getElementById('fCategory').value;
+      const creator = document.getElementById('fCreator').value.trim();
+      const orig = document.getElementById('fOrigTitle').value.trim();
+      const meta = document.getElementById('fMeta').value.trim();
+      const mem = document.getElementById('fMemory').value.trim();
+
+      const item = {
+        id: editId || Date.now(),
+        title,
+        category: cat,
+        genre: normalizeGenre(document.getElementById('fGenre').value, cat, title),
+        rating: Number(document.getElementById('fRating').value) || 10,
+        memory: packMemory(creator, orig, meta, mem),
+        sourceUrl: document.getElementById('fSource').value.trim(),
+        coverUrl: document.getElementById('fCover').value.trim(),
+        dateAdded: new Date().toLocaleDateString('ru-RU')
+      };
+
+      try {
+        const tx = database.transaction('items', 'readwrite');
+        tx.objectStore('items').put(item);
+        tx.oncomplete = async () => {
+          if (supabaseClient) {
+            try {
+              await supabaseClient.from('items').upsert({
+                id: item.id, title: item.title, category: item.category, genre: item.genre, rating: item.rating,
+                memory: item.memory, source_url: item.sourceUrl, cover_url: item.coverUrl, date_added: item.dateAdded
+              });
+            } catch(e){}
+          }
+          closeModal();
+          await loadItems();
+        };
+      } catch(err){ alert('Ошибка: ' + err.message); }
+    }
+
+    async function loadItems() {
+      const database = db || await initDB();
+      if (!database) return;
+      try {
+        const tx = database.transaction('items', 'readonly');
+        tx.objectStore('items').getAll().onsuccess = e => {
+          allItems = (e.target.result || []).map(parseItemData).reverse();
+          renderGenresBar();
+          renderCards();
+        };
+      } catch(e){}
+    }
+
+    function renderGenresBar() {
+      const gb = document.getElementById('genresBar');
+      if (!gb) return;
+      gb.innerHTML = '';
+      if (curFilter === 'all') { gb.classList.add('hidden'); return; }
+
+      const inCat = allItems.filter(i => i.category === curFilter);
+      const used = new Set();
+      inCat.forEach(i => {
+        if (!i.genre) return;
+        i.genre.split(/[,/]/).forEach(g => {
+          const c = g.replace(/[#]/g, '').trim();
+          if (c && c.length > 1 && !BANNED_GENRES.has(c.toLowerCase())) used.add(c.toUpperCase());
+        });
+      });
+
+      const list = Array.from(used);
+      if (!list.length) { gb.classList.add('hidden'); return; }
+      gb.classList.remove('hidden');
+
+      const bAll = document.createElement('button');
+      bAll.className = `font-mono text-[10px] uppercase px-3 py-1 transition ${curGenre==='all'?'bg-[#ff4f2b] text-black font-bold':'bg-[#1a1a1a] text-[#737373] border border-[#3c3c3c]'}`;
+      bAll.textContent = currentLang === 'ru' ? 'ВСЕ ЖАНРЫ' : 'ALL GENRES';
+      bAll.onclick = () => { curGenre = 'all'; renderGenresBar(); renderCards(); };
+      gb.appendChild(bAll);
+
+      list.forEach(g => {
+        const b = document.createElement('button');
+        const active = curGenre.toLowerCase() === g.toLowerCase();
+        b.className = `font-mono text-[10px] uppercase px-3 py-1 transition ${active?'bg-[#ff4f2b] text-black font-bold':'bg-[#1a1a1a] text-[#bfbfbf] border border-[#3c3c3c]'}`;
+        b.textContent = '#' + g;
+        b.onclick = () => { curGenre = active ? 'all' : g; renderGenresBar(); renderCards(); };
+        gb.appendChild(b);
+      });
+    }
+
+    function renderCards() {
+      const q = document.getElementById('searchInput').value.toLowerCase();
+      const grid = document.getElementById('cardsGrid');
+      if (!grid) return;
+      grid.innerHTML = '';
+      const list = allItems.filter(i => {
+        const mCat = curFilter === 'all' || i.category === curFilter;
+        const mGen = curGenre === 'all' || (i.genre && i.genre.toLowerCase().includes(curGenre.toLowerCase()));
+        const mQ = i.title.toLowerCase().includes(q) || (i.creator && i.creator.toLowerCase().includes(q)) || (i.origTitle && i.origTitle.toLowerCase().includes(q)) || (i.genre && i.genre.toLowerCase().includes(q));
+        return mCat && mGen && mQ;
+      });
+      document.getElementById('emptyState').classList.toggle('hidden', list.length > 0);
+
+      const catBadges = { anime: 'АНИМЕ', movie: 'ФИЛЬМ', series: 'СЕРИАЛ', music: 'МУЗЫКА', game: 'ИГРА' };
+
+      list.forEach((i, idx) => {
+        const numStr = String(idx + 1).padStart(2, '0');
+        const c = document.createElement('div');
+        c.className = "bg-[#000000] border border-[#3c3c3c] hover:border-[#bfbfbf] transition flex flex-col justify-between cursor-pointer group";
+
+        const mainT = (currentLang === 'en' && i.origTitle) ? i.origTitle : i.title;
+        const subT = (currentLang === 'en' && i.origTitle) ? i.title : (i.origTitle && i.origTitle !== i.title ? i.origTitle : '');
+
+        c.innerHTML = `
+          <div onclick="openDetailModal(${i.id})">
+            <div class="h-56 w-full bg-[#1a1a1a] relative overflow-hidden border-b border-[#3c3c3c]">
+              <img src="${i.coverUrl || 'https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?w=500'}" referrerpolicy="no-referrer" class="w-full h-full object-cover">
+              <div class="absolute top-0 left-0 bg-[#000000] border-b border-r border-[#3c3c3c] px-2 py-0.5 font-mono text-[10px] text-[#737373]">${numStr}</div>
+              <div class="absolute top-0 right-0 bg-[#000000] border-b border-l border-[#3c3c3c] px-2 py-0.5 font-mono text-[10px] text-[#ff4f2b] font-bold">★ ${i.rating}</div>
+              <div class="absolute bottom-0 left-0 bg-[#000000] border-t border-r border-[#3c3c3c] px-2.5 py-0.5 font-mono text-[10px] text-[#f5f5f5] uppercase">${catBadges[i.category] || 'МЕДИА'}</div>
+            </div>
+            <div class="p-3.5 space-y-1">
+              <div class="font-mono text-[10px] text-[#737373]">${i.dateAdded} ${i.meta ? `// ${i.meta}` : ''}</div>
+              <h4 class="font-light-title text-base text-white group-hover:text-[#ff4f2b] transition leading-snug">${mainT}</h4>
+              ${subT ? `<p class="font-mono text-[10px] text-[#737373] truncate">${subT}</p>` : ''}
+              ${i.creator ? `<p class="font-mono text-[11px] text-[#bfbfbf] truncate pt-0.5 font-medium">${i.creator}</p>` : ''}
+              <div class="pt-0.5"><span class="font-mono text-[9px] text-[#ff4f2b] uppercase">#${i.genre}</span></div>
+            </div>
+          </div>
+          <div class="p-3.5 pt-0">
+            <div class="flex justify-between items-center font-mono text-[10px] border-t border-[#1a1a1a] pt-2.5 mt-1">
+              <span class="text-[#ff4f2b] uppercase" onclick="openDetailModal(${i.id})">ПОДРОБНЕЕ ➔</span>
+              <div class="flex gap-2.5">
+                <button type="button" onclick="event.stopPropagation(); openEditModal(${i.id})" class="text-[#737373] hover:text-white">РЕД.</button>
+                <button type="button" onclick="event.stopPropagation(); askDel(${i.id})" class="text-[#737373] hover:text-[#ff4f2b]">УДАЛИТЬ</button>
+              </div>
+            </div>
+          </div>
+        `;
+        grid.appendChild(c);
+      });
+    }
+
+    function openDetailModal(id) {
+      const it = allItems.find(x => x.id === id);
+      if (!it) return;
+
+      document.getElementById('dCover').src = it.coverUrl || 'https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?w=500';
+      document.getElementById('dBadge').textContent = it.category.toUpperCase();
+      document.getElementById('dYear').textContent = `ДОБАВЛЕНО: ${it.dateAdded}`;
+      document.getElementById('dRating').textContent = it.rating;
+      document.getElementById('dTitle').textContent = (currentLang === 'en' && it.origTitle) ? it.origTitle : it.title;
+      document.getElementById('dOrigSubtitle').textContent = (it.origTitle && it.origTitle !== it.title) ? `Оригинал: ${it.origTitle}` : '';
+
+      const mRow = document.getElementById('rowMeta');
+      if (it.meta) {
+        document.getElementById('dMeta').textContent = it.meta;
+        mRow.classList.remove('hidden');
+      } else mRow.classList.add('hidden');
+
+      const cRow = document.getElementById('rowCreator');
+      if (it.creator) {
+        document.getElementById('dCreatorText').textContent = it.creator;
+        cRow.classList.remove('hidden');
+      } else cRow.classList.add('hidden');
+
+      document.getElementById('dGenre').textContent = '#' + it.genre;
+      document.getElementById('dMemory').textContent = it.memory || 'Заметок нет.';
+
+      const sBox = document.getElementById('dSourceBox');
+      const pText = it.category === 'music' ? '▶ СЛУШАТЬ' : (it.category === 'game' ? '▶ ИГРАТЬ' : '▶ СМОТРЕТЬ');
+      sBox.innerHTML = it.sourceUrl ? `<a href="${it.sourceUrl}" target="_blank" class="block w-full py-2.5 bg-[#ff4f2b] text-black font-mono text-xs font-bold text-center uppercase tracking-wider">${pText} ↗</a>` : '';
+
+      document.getElementById('dEditBtn').onclick = () => { closeDetailModal(); openEditModal(it.id); };
+      document.getElementById('dDelBtn').onclick = () => { closeDetailModal(); askDel(it.id); };
+
+      document.getElementById('cardDetailModal').classList.remove('hidden');
+    }
+
+    function closeDetailModal() { document.getElementById('cardDetailModal').classList.add('hidden'); }
+
+    function openAddModal() {
+      editId = null;
+      document.getElementById('modalTitle').textContent = T[currentLang].add;
+      document.getElementById('itemForm').reset();
+      document.getElementById('cPrev').innerHTML = 'IMG';
+      updateCatLabels();
+      document.getElementById('itemModal').classList.remove('hidden');
+    }
+
+    function openEditModal(id) {
+      const it = allItems.find(x => x.id === id);
+      if (!it) return;
+      editId = id;
+      document.getElementById('modalTitle').textContent = T[currentLang].edit;
+      document.getElementById('fTitle').value = it.title || '';
+      document.getElementById('fCategory').value = it.category || 'movie';
+      updateCatLabels();
+      document.getElementById('fCreator').value = it.creator || '';
+      document.getElementById('fOrigTitle').value = it.origTitle || '';
+      document.getElementById('fMeta').value = it.meta || '';
+      document.getElementById('fGenre').value = it.genre || '';
+      document.getElementById('fRating').value = it.rating || 10;
+      document.getElementById('fMemory').value = it.memory || '';
+      document.getElementById('fSource').value = it.sourceUrl || '';
+      document.getElementById('fCover').value = it.coverUrl || '';
+      if (it.coverUrl) document.getElementById('cPrev').innerHTML = `<img src="${it.coverUrl}" referrerpolicy="no-referrer" class="w-full h-full object-cover">`;
+      document.getElementById('itemModal').classList.remove('hidden');
+    }
+
+    function closeModal() {
+      document.getElementById('itemModal').classList.add('hidden');
+      document.getElementById('sugBox').classList.add('hidden');
+    }
+
+    // НАДЕЖНОЕ ВСТРОЕННОЕ УДАЛЕНИЕ
+    function askDel(id) {
+      delTargetId = id;
+      document.getElementById('delModal').classList.remove('hidden');
+    }
+
+    function closeDelModal() {
+      delTargetId = null;
+      document.getElementById('delModal').classList.add('hidden');
+    }
+
+    async function confirmDel() {
+      if (!delTargetId) return;
+      const targetId = delTargetId;
+      closeDelModal();
+
+      // Мгновенно убираем из интерфейса
+      allItems = allItems.filter(x => x.id != targetId && String(x.id) !== String(targetId));
+      renderGenresBar();
+      renderCards();
+
+      const database = db || await initDB();
+      const nId = Number(targetId), sId = String(targetId);
+
+      try {
+        if (database) {
+          const tx = database.transaction('items', 'readwrite');
+          const store = tx.objectStore('items');
+          if (!isNaN(nId)) store.delete(nId);
+          store.delete(sId);
+        }
+      } catch(e){}
+
+      if (supabaseClient) {
+        try {
+          if (!isNaN(nId)) await supabaseClient.from('items').delete().eq('id', nId);
+          await supabaseClient.from('items').delete().eq('id', sId);
+        } catch(e){}
+      }
+    }
+
+    function setFilter(cat) {
+      curFilter = cat; curGenre = 'all';
+      document.querySelectorAll('.cat-btn').forEach(b => {
+        b.className = b.dataset.cat === cat ? "cat-btn font-mono text-xs uppercase px-3 py-1 bg-[#ff4f2b] text-black border border-[#ff4f2b]" : "cat-btn font-mono text-xs uppercase px-3 py-1 bg-[#1a1a1a] text-[#bfbfbf] border border-[#3c3c3c]";
+      });
+      renderGenresBar(); renderCards();
+    }
+
+    function exportBackup() {
+      const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(allItems, null, 2));
+      const a = document.createElement('a'); a.href = dataStr; a.download = `backup_${Date.now()}.json`;
+      document.body.appendChild(a); a.click(); a.remove();
+    }
+
+    document.getElementById('searchInput').addEventListener('input', renderCards);
+    document.addEventListener('click', e => {
+      const sb = document.getElementById('sugBox'), inp = document.getElementById('fTitle');
+      if (sb && !sb.contains(e.target) && e.target !== inp) sb.classList.add('hidden');
+    });
+
+    async function startApp() {
+      applyLanguage();
+      try {
+        await initDB();
+        await loadItems();
+      } catch(e){}
+      setTimeout(async () => {
+        try { await recoverOld(); await loadItems(); } catch(e){}
+        try { if (supabaseClient) { await syncCloud(); await loadItems(); } } catch(e){}
+      }, 100);
+    }
+
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', startApp);
+    } else {
+      startApp();
+    }
+  </script>
+</body>
+</html>
